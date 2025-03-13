@@ -3,7 +3,7 @@ Code accompanying the manuscript "The cervicovaginal microbiome of pregnant peop
 
 
 ## Contributors
-Kimberley S Ndlovu
+Kimberley S Ndlovu<br/> 
 Ricardo R Pavan, PhD
 
 ## File descriptions:
