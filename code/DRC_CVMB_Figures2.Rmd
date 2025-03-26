@@ -1,0 +1,1773 @@
+---
+title: "The cervicovaginal microbiome of pregnant people living with HIV on antiretroviral therapy in the Democratic Republic of Congo: A Pilot Study and Global Meta-Analysis"
+author: "Kimberley S Ndlovu & Ricardo R Pavan"
+date: "2025-02-18"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    theme: cosmo
+    highlight: tango
+---
+
+Figure scripts for the paper, "The cervicovaginal microbiome of pregnant people living with HIV on antiretroviral therapy in the Democratic Republic of Congo: A Pilot Study and Global Meta-Analysis"
+
+```{r, setup, include=FALSE}
+#set directory
+knitr::opts_knit$set(root.dir = "~/Desktop/drc_cvmb_paper")
+```
+
+```{r load libraries, echo=FALSE}
+if (!require(pacman)){
+    install.packages("pacman")
+}
+if (!require("veganEx")) remotes::install_github("vegandevs/veganEx")
+
+library(pacman)
+pacman::p_load(
+  tidyverse,
+  phyloseq,
+  phyloseqCompanion,
+  ComplexHeatmap,
+  microViz,
+  phylosmith,
+  circlize,
+  broom,
+  microbiome,
+  data.table,
+  MiscMetabar,
+  foreach,
+  modeest,
+  lmerTest,
+  parallel,
+  ALDEx2,
+  ANCOMBC,
+  ComplexUpset,
+  rstatix,
+  ggpubr, 
+  dtplyr, 
+  veganEx, ggh4x,
+  install = T
+)
+
+#source your functions
+source("functions_drc_cvmb.R")
+
+```
+
+# Figure 1
+## B. Heatmap of RCLR abundances in the CQI-PMTCT cohort
+
+```{r, echo=FALSE, fig.width=11, fig.height=7}
+ps_congo_filt_spp_rclr <- readRDS("data/ps_congo_filt_spp_rclr.rds")
+#change CST column in metadata table
+meta_congo <- sample.data.frame(ps_congo_filt_spp_rclr)
+meta_congo <- meta_congo %>% mutate(CST = if_else(str_starts(CST, "IV-"), "IV", CST))
+sample_data(ps_congo_filt_spp_rclr) <- meta_congo
+#calculate the top30 most abundance species
+top30 <- tax_top(ps_congo_filt_spp_rclr, n = 30)
+#subset phyloseq
+ps2 <- subset_taxa(ps_congo_filt_spp_rclr, rownames(tax_table(ps_congo_filt_spp_rclr)) %in% top30)
+
+#set colours
+CST_col = c("II" = "#F5530D", "III" = "#16FBCD", "IV" = "navy", "V" = "#8D324D")
+
+Viral_load_enrol_detected_col = c("1" = "#712679", "0" = "#2E7926")
+ART_cols = c("TDF_3TC_EFV" = "#E7AC18", "TDF_3TC_TLD" = "#1853E7", "TDF_3TC" = "#D02AD5")
+
+## prepare matrix for heatmap
+taxa <- tax_table(ps2) %>% as.data.frame() %>% rownames_to_column("asvid") %>% mutate(Taxon = case_when(
+  !is.na(Species) ~ paste(sub("^g__", "", Genus), sub("^s__", "", Species), sep = " "),
+  !is.na(Genus) ~ (Genus),
+  !is.na(Family) ~ Family,
+  !is.na(Order) ~ Order,
+  !is.na(Class) ~ Class,
+  !is.na(Phylum) ~ Phylum,
+  TRUE ~ "Unknown"
+)) %>% select(-Kingdom, -Species, -Genus, -Family, -Order, -Class, -Phylum)
+ 
+abundance_df <- phyloseq::otu_table(ps2) %>% t() %>%
+  as.data.frame() %>% 
+  rownames_to_column("asvid") %>%
+  gather(key = "sampleID", value = "Abundance", -asvid) %>% 
+  full_join(taxa, by = "asvid") %>% 
+  left_join(meta_congo %>% select(sampleID, CST, Viral_load_enrol_detected, ART_regimen), by = "sampleID")
+ 
+top_taxa_long <- abundance_df %>%
+  group_by(sampleID, Taxon) %>% summarise(Abundance = sum(Abundance)) %>%
+  mutate(Taxon = na_if(Taxon, ""))
+  
+top_taxa_unique <- abundance_df %>% filter(Taxon %in% top_taxa_long$Taxon) %>% distinct(Taxon)
+
+abundance_plot <- top_taxa_long %>% filter(Taxon %in% top_taxa_unique$Taxon) %>% 
+  pivot_wider(names_from = sampleID, values_from = Abundance) %>% 
+  column_to_rownames("Taxon")
+
+#set up the annotations for the heatmap
+abund_plot_annotations <- meta_congo %>% select(CST, Viral_load_enrol_detected, ART_regimen)
+
+abund_plot_annotations <- abund_plot_annotations %>% mutate(across(where(is.integer), as.character)) 
+
+Annotation_cols <- list(
+  Viral_load_enrol_detected = c("1" = "#712679", "0" = "#2E7926", "NA" = "white"),   
+  ART_regimen = c("TDF_3TC_EFV" = "#E7AC18", "TDF_3TC_TLD" = "#1853E7", "TDF_3TC" = "#D02AD5", "NA" = "white"), 
+  CST = c("II" = "#DE7E5E", "III" = "#16FBCD", "IV" = "navy", "V" = "brown"))
+
+#specify cst order
+cst_order <- list("II", "III", "IV", "V")
+abund_plot_annotations <- abund_plot_annotations[order(factor(abund_plot_annotations$CST, levels = cst_order)), ]
+abundance_plot_cstordered <- abundance_plot[, rownames(abund_plot_annotations)]
+
+#order rows by most abundant 
+rs <- as.vector(rowSums(abundance_plot_cstordered))
+set.seed(24)
+abundance_plot_cstordered <- abundance_plot_cstordered[order(rs, decreasing = T), , drop = F]
+#create matrix for complexheatmap
+abundance_plot_mat <- as.matrix(abundance_plot_cstordered)
+
+#plot the heatmap
+Heatmap(abundance_plot_mat, 
+        cluster_rows = F, 
+        cluster_columns = F, 
+        show_column_names = F, 
+        top_annotation = HeatmapAnnotation(df = abund_plot_annotations, 
+                                          col = Annotation_cols, 
+                                          na_col = "white"), 
+        rect_gp = gpar(col = "grey"))
+```
+
+# Figure 2: Ecological statistics of the CVMB in the CQI-PMTCT cohort.
+## A.CQI-PMTCT cohort:Shannon diversity by CST
+
+```{r, echo=FALSE}
+#load phyloseq object and extract otu_table
+ps_congo_filt_spp <- readRDS("data/ps_congo_filt_spp.rds")
+otu <- otu_table(ps_congo_filt_spp) %>% as.data.frame() %>% t()
+
+#calculate asymptotic alpha diversity and prepare table for plotting
+congo_alpha_div <- get_asymptotic_alpha(otu)
+# write_csv(congo_alpha_div, "tables/congo_alpha_div.csv)
+#data wrangle
+meta_congo2 <- sample.data.frame(ps_congo_filt_spp)
+meta_congo2 <- meta_congo2 %>% mutate(CST = if_else(str_starts(CST, "IV-"), "IV", CST))
+congo_alpha_div <- congo_alpha_div %>% rownames_to_column("sampleID")
+congo_alpha_div <- congo_alpha_div %>% left_join(meta_congo2, by = "sampleID")
+
+shannon <- congo_alpha_div %>% select(sampleID, `Shannon Entropy`, CST, Viral_load_enrol_detected, ART_regimen)
+#stats
+kruskal.test(shannon$`Shannon Entropy` ~ shannon$CST) #0.002345917
+#posthoc
+dunn_test(shannon, `Shannon Entropy` ~ CST, p.adjust.method = "bonferroni")
+
+shannon <- congo_alpha_div %>% select(sampleID, `Shannon Entropy`, CST, Viral_load_enrol_detected, ART_regimen)
+#specify colours
+CST_col <- c("II" = "#F5530D", "III" = "#16FBCD", "IV" = "navy","V"  = "#8D324D")
+# plot
+ggplot(shannon %>% filter(!is.na(CST)), aes(x = CST, y = `Shannon Entropy`, fill = CST)) + 
+  geom_boxplot() + 
+  geom_jitter(color = "black", fill = "white", alpha = 0.5, height = 0, width = 0.1) +
+  geom_text(aes(x = CST, y = min(shannon$`Shannon Entropy`, na.rm = TRUE) - 0.1, label = ""), vjust = 2) +
+  labs(y = "Shannon's Index (H)", x = "CST", caption = paste("Kruskal-Wallis Test p = 0.002345917")) + 
+  theme(
+    legend.position = "none", 
+    panel.background = element_rect(fill = NA, colour = "white"), 
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line()
+  ) + 
+  scale_fill_manual(values = CST_col) + 
+  geom_line(data = tibble(x = c(2, 3), y = c(2.7, 2.7)), aes(x = x, y = y), inherit.aes = FALSE) + 
+  geom_text(data = tibble(x = 2.5, y = 2.7), aes(x = x, y = y, label = "**"), size = 10, inherit.aes = FALSE)
+```
+
+## B.CQI-PMTCT cohort:PCA by CST
+```{r, echo=FALSE}
+#calculate anosim
+perform_anosim(ps_congo_filt_spp_rclr, "CST", "euclidean") #R 0.2058, p=0.001
+#calculate pairwise_anosim (posthoc)
+perform_pairwise_anosim(ps_congo_filt_spp_rclr, "CST", "euclidean", "bonferroni", perm = 999)
+#plot
+ps_congo_filt_spp_rclr %>%
+  ord_calc(method = "PCA", scale_cc = FALSE) %>%
+  ord_plot(colour = "CST", plot_taxa = 1:5, size = 5) +
+  scale_color_manual(values = CST_col) + labs(caption = paste("ANOSIM R = 0.2058,  p = 0.001"))
+```
+
+## C.CQI-PMTCT cohort:Shannon diversity by ART regimen
+
+```{r, echo=FALSE}
+#specify colours
+ART_cols = c("TDF_3TC_EFV" = "#E7AC18", "TDF_3TC_TLD" = "#1853E7", "TDF_3TC" = "#D02AD5")
+
+#stats
+kruskal.test(shannon$`Shannon Entropy` ~ shannon$ART_regimen) #0.6954
+#posthoc dunns
+dunn_test(shannon, `Shannon Entropy` ~ ART_regimen, p.adjust.method = "BH") #0.938
+#order
+ART_order = c("TDF_3TC_EFV", "TDF_3TC_TLD", "TDF_3TC")
+shannon$ART_regimen <- factor(shannon$ART_regimen, levels = ART_order)
+
+ggplot(shannon %>% filter(!is.na(ART_regimen)), aes(ART_regimen, `Shannon Entropy`, fill = ART_regimen)) + 
+  geom_boxplot() +  geom_jitter(color="black", fill="white", alpha=0.5, height = 0, width = 0.1) +
+  geom_text(aes(x = ART_regimen, y = min(shannon$`Shannon Entropy`, na.rm = TRUE) - 0.1, label=""), vjust = 2) +
+  labs(y = "Shannon Entropy", x = "ART Regimen") + 
+  theme(legend.position = "none", panel.background = element_rect(fill = NA, colour = "white"), axis.text = element_text(size = 10), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line())+ 
+  scale_fill_manual(values =ART_cols) + geom_line(data = tibble(x =c(1,2), y = c(3,3)), aes(x=x, y=y), inherit.aes = F) + geom_text(data = tibble(x =c(1.5), y = c(3.1)), aes(x=x, y=y, label = "ns"), size = 6 , inherit.aes = F)
+```
+
+## D.CQI-PMTCT cohort: PCA by ART
+
+```{r, echo=FALSE}
+#subset to samples with ART info available
+ps_ART_only <- subset_samples(ps_congo_filt_spp, !is.na(ART_regimen))
+#trasforme
+ps_ART_only_rclr <- robust_clr_transform2(ps_ART_only)
+#stats
+perform_anosim(ps_ART_only_rclr, "ART_regimen", "euclidean") # R = -0.07724, p = 0.835
+#calculate pairwise_anosim (posthoc)
+perform_pairwise_anosim(ps_ART_only_rclr, "ART_regimen", "euclidean", "bonferroni", perm = 999)
+
+#plot
+run_PCA(ps_ART_only_rclr, "ART_regimen", scale = F, title = "", color_palette = ART_cols) + labs(caption = paste("ANOSIM R = -0.07724, p = 0.835")) + theme(legend.position = "none")
+
+```
+
+## E.CQI-PMTCT cohort:Shannon diversity by viremia
+
+```{r, echo=FALSE}
+#specify colours
+VL_col = c("1" = "#712679", "0" = "#2E7926")
+#stats
+wilcox.test(shannon$`Shannon Entropy` ~ shannon$Viral_load_enrol_detected) #0.2853
+
+#plot
+ggplot(shannon %>% filter(!is.na(Viral_load_enrol_detected)), aes(Viral_load_enrol_detected, `Shannon Entropy`, fill = Viral_load_enrol_detected)) + 
+  geom_boxplot() +  geom_jitter(color="black", fill="white", alpha=0.5, height = 0, width = 0.1) +
+  geom_text(aes(x = Viral_load_enrol_detected, y = min(shannon$`Shannon Entropy`, na.rm = TRUE) - 0.1, label=""), vjust = 2) +
+  labs(y = "Shannon Entropy", x = "HIV Viremia") + 
+  theme(legend.position = "none", panel.background = element_rect(fill = NA, colour = "white"), axis.text = element_text(size = 10), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),axis.line = element_line())+ 
+  scale_fill_manual(values =VL_col) + geom_line(data = tibble(x =c(1,2), y = c(3,3)), aes(x=x, y=y), inherit.aes = F) + geom_text(data = tibble(x =c(1.5), y = c(3.1)), aes(x=x, y=y, label = "ns"), size = 6 , inherit.aes = F)
+
+
+```
+
+## F.CQI-PMTCT cohort: PCA by viremia
+```{r, echo=FALSE}
+VL_col = c("1" = "#712679", "0" = "#2E7926")
+#subset to samples with viremia info
+ps_VL_only <- subset_samples(ps_congo_filt_spp, !is.na(Viral_load_enrol_detected))
+#transform
+ps_VL_only_rclr <- robust_clr_transform2(ps_VL_only)
+#stats
+perform_anosim(ps_VL_only_rclr, "Viral_load_enrol_detected", "euclidean") # R = -0.1062, p = 0.795
+#calculate pairwise_anosim (posthoc)
+perform_pairwise_anosim(ps_VL_only_rclr, "Viral_load_enrol_detected", "euclidean", "bonferroni", perm = 999)
+#plot
+run_PCA(ps_VL_only_rclr, "Viral_load_enrol_detected", scale = F, title = "", color_palette = VL_col) + labs(caption = paste("ANOSIM R = -0.1062, p = 0.795")) + theme(legend.position = "none")
+
+```
+
+# Figure 3: Ecological statistics in the integrated datasets
+
+### Calculate alpha diversity
+```{r, data wrangle, echo=FALSE}
+# load phyloseq object
+load(file= 'data/ps_filt_spp_zero.RData')
+
+# prepare data to calculate alpha diversity
+meta_all <- ps_filt_spp_zero %>% sample_tibble(column.id = "sample_id")
+otu_df <- ps_filt_spp_zero %>% otu_tibble("id")
+ps_melted <- ps_filt_spp_zero %>% psmelt.dplyr() %>% dplyr::rename(id=OTU)
+CST = read_delim("tables/metadata_final.tsv") %>%
+          filter(sampleID %in% meta_all$sample_id) %>%
+          dplyr::rename(sample_id = sampleID) %>%
+          select(sample_id, CST) %>%
+          mutate(CST = factor(CST, levels = c("I", "II", "III", "IV-A", "IV-B", "IV-C", "V"))) %>%
+          mutate(CST = fct_recode(CST, "IV" = "IV-A", "IV" = "IV-B", "IV" = "IV-C"))
+meta_all <- meta_all %>% left_join(CST, by = "sample_id")
+ps_melted <- ps_melted %>% left_join(CST, by = c("Sample" = "sample_id")) 
+```
+
+```{r,alpha-div, echo=FALSE}
+# using funtion from iNEXT library and a wrapper developed by thomazbastiaanssen
+# Compute alpha diversity using a wrapper around the iNEXT library, 
+#which implements automatic rarefaction curves.
+# ASV by rows and samples by columns
+inv_simpson <- ps_filt_spp_zero %>% 
+                  estimate_richness(measures=c("InvSimpson")) %>%
+                  rownames_to_column("sample_id")
+
+pielou <- otu_df %>% 
+          column_to_rownames("id") %>%
+          evenness(index = "pielou", zeroes = TRUE, detection = 0) %>% 
+          dplyr::rename(Pielou = pielou) %>%
+          mutate(Pielou = if_else(Pielou == "NaN", 0, Pielou)) %>%
+          rownames_to_column("sample_id")
+
+ps_nest <- ps_melted %>% 
+  select(id, Sample, abundance, study) %>%
+  group_by(study) %>%
+  nest() %>%
+  mutate(data = map(data, ~ pivot_wider(.x, names_from = Sample, values_from = abundance) %>%
+                                    column_to_rownames("id")))
+
+alpha_nest <- ps_nest %>%
+                mutate(alpha_df = map(data, ~get_asymptotic_alpha(species = .x, verbose = FALSE)))
+
+alpha_df <- alpha_nest$alpha_df %>% 
+              bind_rows() %>% 
+              rownames_to_column("sample_id") %>% 
+              tibble() %>% 
+                dplyr::left_join(inv_simpson, by = "sample_id") %>%
+                dplyr::left_join(pielou, by = "sample_id") %>%
+                dplyr::left_join(meta_all %>% dplyr::select(sample_id, study, health_status, CST))
+
+#write_csv(alpha_df, file.path(output_folder, "/tables/alpha_diversity_bac.csv"))
+# alpha_df <- read_csv(paste0(output_folder, "/tables/alpha_diversity_bac.csv"))
+
+```
+
+
+```{r stats by HS, echo=FALSE} 
+# run stats by health status
+kruskal_alpha <- alpha_df %>%
+  pivot_longer(-c(sample_id, study, health_status, CST)) %>%
+  group_by(name) %>%
+  nest() %>%
+  mutate(
+    model = map(data, ~ .x %>% kruskal_test(value ~ study) %>%
+      adjust_pvalue(method = "bonferroni") %>%
+      add_significance("p.adj")
+  ),
+    model = map2(model, name, ~ mutate(.x, variable = paste(.y))),
+    pwc = map(data, ~ .x %>% wilcox_test(value ~ study, p.adjust.method = "bonferroni")),
+    pwc = map2(pwc, name, ~ mutate(.x, variable = paste(.y)))
+  )
+
+kruskal_alpha$model %>% 
+  bind_rows() %>%
+  # mutate(across(where(is.numeric), ~round(., 10))) %>%
+  # filter(term != "(Intercept)") %>%
+  filter(p.adj < 0.05)
+
+stat.test <- kruskal_alpha$pwc %>% 
+  bind_rows() %>%
+  filter(p.adj < 0.05)
+
+#stat.test %>% write_csv("tables/alpha_diversity_bac_stats.csv")
+# stat.test <- read_csv(paste0(output_folder, "tables/alpha_diversity_bac_stats.csv"))
+```
+
+## A.Meta-analysis: Shannon diversity by health status
+```{r, echo=FALSE}
+#load phyloseq
+ps_filt_spp_clr_zero_adj <- readRDS("data/ps_filt_spp_clr_zero_adj.RDS")
+meta_all2 <- sample.data.frame(ps_filt_spp_clr_zero_adj)
+#load table
+alpha_diversity_bac <- read_csv("tables/alpha_diversity_bac.csv")
+
+colnames(alpha_diversity_bac)[1] <- "sampleID"
+
+HS_col <- c("-" = "#005ab5", "+" = "#dc3220")
+# HS_col2 <- c("Asymptomatic" = "#005ab5", "HIV" = "#dc3220")
+#stats
+wilcox.test(`Shannon Entropy`~health_status, data = alpha_diversity_bac) #2.661e-07
+#posthoc
+dunn_test(`Shannon Entropy`~health_status, data = alpha_diversity_bac) #2.656451e-07	
+
+alpha_diversity_bac <-alpha_diversity_bac %>% mutate(HS = case_when(health_status == "HIV" ~"+", 
+                                                health_status == "Asymptomatic" ~ "-"))
+#plot
+ggplot(alpha_diversity_bac %>% filter(!is.na(health_status)), aes(HS, `Shannon Entropy`, fill = HS)) + 
+  geom_boxplot() +  geom_jitter(color="black", fill="white", alpha=0.5, height = 0) +
+  labs(y = "Shannon Entropy", x = "HIV Status") + theme(axis.text = element_text(size=12, face ="bold")) +
+  theme(legend.position = "none", panel.background = element_rect(fill = NA, colour = "white"))+ 
+  scale_fill_manual(values = HS_col, 0.4) + geom_line(data = tibble(x =c(1,2), y = c(3,3)), aes(x=x, y=y), inherit.aes = F) + geom_text(data = tibble(x =c(1.5), y = c(3)), aes(x=x, y=y, label = "****"), size = 10 , inherit.aes = F)
+
+```
+
+## B.Meta-analysis: PCA by health status
+
+```{r, echo=FALSE}
+#specify shapes
+shaps <- c("Kervinen_2022"=21,"Livson_2022"= 22, "Servergnini_2021"=23, "Ho_2021"=24,"PMTCT_CQI"=25,"Movassagh_2021"=6)
+
+
+cols = c("HIV" = "#DC3220", "Asymptomatic" = "#005AB5")
+
+#calulate permanova
+#stats
+perform_anosim(ps_filt_spp_clr_zero_adj, "health_status", "euclidean") # R = -0.1062, p = 0.795
+#calculate pairwise_anosim (posthoc)
+perform_pairwise_anosim(ps_filt_spp_clr_zero_adj, "health_status", "euclidean", "bonferroni", perm = 999)
+
+#plot
+run_PCA_shape(ps_filt_spp_clr_zero_adj, "health_status", "study", scale = F, title = " ", color_palette = cols, shape_palette = shaps) + labs(caption = paste("ANOSIM R =  0.518,  p = 0.001"))
+```
+
+## C.Metaanaly:Shannon by CST
+
+```{r, echo=FALSE}
+
+alpha_div_all <- alpha_diversity_bac %>% left_join(meta_all, by ="sampleID")
+
+CST_col= c("I" = "#8035EB","II" = "#F5530D", "III" = "#16FBCD", "IV" = "navy","V"  = "#8D324D")
+#stats
+pairwise.wilcox.test(alpha_div_all$`Shannon Entropy`, alpha_div_all$CST, p.adjust.method = "BH")
+
+my_comparisons <- list(c("I", "II"), c("I", "IV"), c("I", "V"), c("II", "III"), c("II", "IV"), c("II", "V"), c("III", "IV"), c("III", "V"), c("IV", "V"))
+#plot
+kruskal.test(`Shannon Entropy` ~ CST, data = alpha_div_all)$p.value #1.023234e-35
+ggplot(alpha_div_all %>% filter(!is.na(CST)), aes(CST, `Shannon Entropy`, fill = CST)) + 
+  geom_boxplot() + 
+  geom_jitter(aes(color = health_status.x), alpha = 0.8, height = 0, width = 0.2) +
+  labs(y = "Shannon's Index (H)", x = "CST", caption = paste("Kruskal-Wallis Test p = 1.023234e-35")) + 
+  theme(legend.position = "none", panel.background = element_rect(fill = NA, colour = "white")) +
+  stat_compare_means(aes(label = ..p.signif..), method = "wilcox", comparisons = my_comparisons) +
+  scale_fill_manual(values = CST_col) + scale_color_manual(values = c("HIV" = "#DC3220", "Asymptomatic" = "#005AB5")) + stat_summary(fun = mean, size = .2, shape = 23, colour = "white")
+
+
+```
+
+
+## D.Meta-analysis: PCA by CST
+
+```{r,  echo=FALSE}
+#stats
+perform_anosim(ps_filt_spp_clr_zero_adj, "CST", "euclidean") #R 0.3991, p=0.01
+#calculate pairwise_anosim (posthoc)
+perform_pairwise_anosim(ps_filt_spp_clr_zero_adj, "CST", "euclidean", "bonferroni", perm = 999)
+#plot
+shaps <- c("Kervinen_2022"=21,"Livson_2022"= 22, "Servergnini_2021"=23, "Ho_2021"=24,"PMTCT_CQI"=25,"Movassagh_2021"=6 )
+run_PCA_shape(ps_filt_spp_clr_zero_adj, "CST", "study", scale = F, title = " ", color_palette = CST_col, shape_palette = shaps) + labs(caption = paste("ANOSIM R =  0.3991,  p = 0.001"))
+```
+
+
+# Figure 4: Meta-analysis: Differentially abundant species by health status
+### perform DAAs
+```{r, echo=FALSE}
+
+#### load data ----
+load('data/ps_filt_spp_zero.RData')
+
+pseq.bac <- ps_filt_spp_zero
+meta <- pseq.bac %>% sample_tibble(column.id = "sample_id")
+tax_df <- pseq.bac %>% tax_tibble("id")
+otu_df <- pseq.bac %>% otu_tibble("id")
+
+
+# cores
+n_cores <- detectCores()
+cores <- n_cores - 1
+
+####---- LinDA ----####
+# INPUTS:
+# ASV by row and samples by columns
+# meta: samples by rows
+linda_input_asv <- pseq.bac %>% 
+                    otu_tibble(column.id = "genus") %>%
+                    column_to_rownames("genus")
+
+linda_meta <- pseq.bac %>% 
+                    sample_tibble(column.id = "sample_id") %>%
+                    column_to_rownames("sample_id")
+
+# run LinDA
+linda.obj <- linda(otu.tab = linda_input_asv,
+                meta = linda_meta,
+                # phyloseq.obj = NULL,
+                formula = "~health_status + study",
+                type = 'count',
+                adaptive = TRUE, 
+                imputation = TRUE, 
+                # pseudo.cnt = 0.65, 
+                corr.cut = 0.1,
+                p.adj.method = 'BH', 
+                alpha = 0.05,
+                prev.cut = 0, 
+                lib.cut = 1, 
+                winsor.quan = 0.97, 
+                n.cores = cores
+                )
+
+
+# get the results
+linda_res <- linda.obj$output %>%
+                imap(., ~mutate(.x, name = .y)) %>% 
+                map_df(., ~rownames_to_column(., "Species") %>%
+                    as_tibble %>% 
+                    arrange(padj) %>%
+                    # reject H0??
+                    mutate(reject = ifelse(padj < 0.05, "Yes", "No"))) %>%
+                mutate(method = "LinDA")
+
+# linda_res %>% filter(padj < 0.05) %>% View()
+
+# save results
+# write_csv(linda_res,"tables/DAA/linda_res_bac.csv")
+
+####---- ANCOM-BC ----####
+# prepare the phyloseq object
+pseq.bac.filt  <- pseq.bac
+tax_df_filt <- pseq.bac.filt %>% 
+                    tax_tibble("asv") %>% 
+                    mutate(Species = asv) %>%
+                    column_to_rownames("asv")
+
+tax_table(pseq.bac.filt) <- tax_table(as.matrix(tax_df_filt))
+
+# perform the ANCOM-BC analysis 
+ancombc_out <- ancombc2(
+                data = pseq.bac.filt,
+                assay_name = "counts",
+                tax_level= "Species",
+                fix_formula = "health_status + study", 
+                p_adj_method = "fdr", 
+                #pseudo = 0,
+                #pseudo_sens = TRUE,
+                prv_cut = 0, # prev filtering has been done above already
+                lib_cut = 0, 
+                group = "health_status", 
+                struc_zero = TRUE, 
+                neg_lb = TRUE,
+                iter_control = list(tol = 1e-5, max_iter = 20, verbose = FALSE),
+                em_control = list(tol = 1e-5, max_iter = 100), # use max_iter >= 100 on real data 
+                alpha = 0.05, 
+                global = TRUE, # multi group comparison will be deactivated automatically 
+                verbose = T,
+                n_cl = cores)
+
+# store the results in res 
+ancombc_res <- ancombc_out$res %>%  
+                as.data.frame() %>%
+                pivot_longer(cols = -taxon, 
+                            names_to = "variable", 
+                            values_to = "value") %>%
+                # "merge" = preserve any extra characters after the first underscore in the second column.
+                separate(variable, c("stats", "name"), sep = "_", extra = "merge") %>%
+                pivot_wider(id_cols = c(taxon, name),
+                            names_from = "stats",
+                            values_from = "value") %>%
+                mutate(diff = if_else(diff == 1, TRUE, FALSE),
+                        method = "ANCOM-BC") %>%
+                rename(Species = taxon)
+
+# save results
+# write_csv(ancombc_res, file = "tables/DAA/ancombc_res.csv")
+
+####--- ALDEx2 ----####
+df_aldex <- pseq.bac %>% 
+  otu_tibble("Species") %>% 
+  column_to_rownames("Species") 
+
+# make model matrix
+mm <- model.matrix(~ health_status + study, data = meta)
+
+# INPUT: ASV by rows and samples by columns
+# CLR transformation
+x <- aldex.clr(df_aldex, mm, mc.samples=128, denom="all", verbose=F)
+# apply glm
+glm.test <- aldex.glm(x, mm)
+glm.effect <- aldex.glm.effect(x)
+
+# make a data frame
+aldex2_res <- glm.effect %>% 
+                imap(., ~mutate(.x, name = .y)) %>%
+                map_df(., ~rownames_to_column(., "Species") %>%
+                        as_tibble) %>%
+                mutate(method = "ALDEx2")
+
+# save results
+# write_csv(aldex2_res, file ="tables/DAA/aldex2_res.csv")
+
+genus_df <- pseq.bac %>% otu_tibble("Species")
+
+# put all methods together and count how many taxa were identified 
+# score = intersection of identified taxa
+all_methods <- linda_res %>%
+            filter(padj < 0.05) %>%
+            dplyr::select(Species, LinDA = reject) %>%
+            distinct(Species, .keep_all = TRUE) %>%
+            mutate(LinDA = ifelse(LinDA == "No", FALSE, TRUE)) %>%
+    full_join(ancombc_res %>% 
+                filter(q < 0.05) %>% 
+                dplyr::select(Species, ancombc = diff) %>%
+                distinct(Species, .keep_all = TRUE), 
+                by = "Species", 
+                relationship = "many-to-many") %>%
+    full_join(aldex2_res %>% 
+                filter(abs(effect) > 0.5) %>%
+                dplyr::select(Species, aldex2 = effect) %>%
+                distinct(Species, .keep_all = TRUE),
+                by = "Species",
+                relationship = "many-to-many") %>%
+    mutate(aldex2 = if_else(abs(aldex2) >= 0.05, TRUE, FALSE),
+            across(-Species, function(x) ifelse(is.na(x), FALSE, x)),
+        score = rowSums(across(c(aldex2, ancombc, LinDA))),
+    )
+
+only_health_status <- linda_res %>%
+            filter(padj < 0.05) %>%
+            filter(name == "health_statusHIV") %>%
+            dplyr::select(Species, LinDA = reject) %>%
+            distinct(Species, .keep_all = TRUE) %>%
+            mutate(LinDA = ifelse(LinDA == "No", FALSE, TRUE)) %>%
+    full_join(ancombc_res %>% 
+                filter(q < 0.05) %>% 
+                filter(name == "health_statusHIV") %>%
+                dplyr::select(Species, ancombc = diff) %>%
+                distinct(Species, .keep_all = TRUE), 
+                by = "Species", 
+                relationship = "many-to-many") %>%
+    full_join(aldex2_res %>% 
+                filter(abs(effect) > 0.5) %>%
+                filter(name == "health_statusHIV") %>%
+                dplyr::select(Species, aldex2 = effect) %>%
+                distinct(Species, .keep_all = TRUE),
+                by = "Species",
+                relationship = "many-to-many") %>%
+    mutate(aldex2 = if_else(abs(aldex2) >= 0.05, TRUE, FALSE),
+            across(-Species, function(x) ifelse(is.na(x), FALSE, x)),
+        score = rowSums(across(c(aldex2, ancombc, LinDA))),
+    )
+
+# check which variables each genus was significant
+variables_all <- linda_res %>%
+                filter(padj < 0.05) %>%
+                dplyr::select(Species, name) %>%
+                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                group_by(Species) %>%
+                summarise(variable_linda = paste(unique(variable), collapse = " and ")) %>%
+                full_join(ancombc_res %>%
+                            filter(q < 0.05) %>%
+                            dplyr::select(Species, name) %>%
+                            filter(name != "(Intercept)") %>%
+                                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                                group_by(Species) %>%
+                            summarise(variable_ancombc = paste(unique(variable), collapse = " and ")),
+                        by = "Species") %>%
+                full_join(aldex2_res %>%
+                                filter(abs(effect) > 0.5) %>% 
+                                dplyr::select(Species, name) %>%
+                                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                                group_by(Species) %>%
+                                summarise(variable_aldex2 = paste(unique(variable), collapse = " and ")),
+                        by = "Species") 
+
+
+```
+## Figure 4 
+```{r, plot, fig.height=10, fig.width=25}
+# box plot only DAA health Status and detect by at least 2 methods
+only_health_status <- all_methods %>% 
+                        filter(if_any(starts_with("variable"), ~str_detect(., "health_status"))) %>% 
+                        filter(score > 1)
+daa_spp <- only_health_status %>% distinct(Species) %>% pull(Species)
+# load CLR-transformed data
+#load('ps_filt_spp_clr_zero.RData') # only CLR
+pseq.bac <- ps_filt_spp_clr_zero_adj
+meta <- pseq.bac %>% sample_tibble(column.id = "sample_id")
+tax_df <- pseq.bac %>% tax_tibble("id")
+otu_df <- pseq.bac %>% otu_tibble("id")
+ps_melted_clr <- pseq.bac %>% psmelt.dplyr() %>% rename(id = OTU)
+
+color_study <- c(
+  "PMTCT_CQI" = "red",
+  "Movassagh_2021" = "green",
+  "Kervinen_2022" = "#445002",
+  "Livson_2022" = "lavender",
+  "Servergnini_2021" = "navy",
+  "Ho_2021" = "#AA9F0D"
+)
+
+ps_melted_clr %>%
+    filter(id %in% daa_spp) %>%
+    mutate(id = gsub("f__|_g__|_s__", " ", id),
+            id = gsub("^ ", "", id),
+            id = gsub("([^ ]+)( )", "\\1\n", id)) %>%
+    ggplot(aes(x = id, y = abundance, 
+                            fill = health_status)) +
+                    # geom_jitter(aes(color = study),alpha=0.2) +
+                    geom_boxplot(coef = 100, width = 0.5) +
+                    # facet_wrap(vars(id), scales = "free_y") +
+                    scale_fill_manual(values = c("HIV" = "#DC3220", "Asymptomatic" = "#005AB5")) +
+                    # ggtitle("Differentially abundant Species between Asymptomatic and HIV groups") +
+                    scale_color_manual(values = color_study) +
+                    theme_classic() +
+                    labs(y = "Species Abundance (CLR)") +
+                    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+                    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+                    theme(axis.text.x = element_text(size = 12, angle = 90, hjust = 1),
+                            strip.background = element_rect(fill = "white", color = "white"),
+                            strip.text.x = element_text(size = 12),
+                            axis.title.x = element_blank(),
+                            plot.title = element_text(size=20))
+
+# ggsave("box_plot_spp_DAA_option_1.pdf", width = 20, height = 10)
+
+```
+
+# Figure 5: CQI-PMTCT: Predicted KEGG pathways differentially abundant by CST
+## perform DAAs
+```{r, echo=FALSE}
+all_congo_df <- vroom::vroom('tables/ko_df_congo_unstrat_with_annotation.tsv')
+ko_numeric = all_congo_df %>% dplyr::select(KO, where(is.numeric))
+ko_tax = all_congo_df %>% dplyr::select(where(is.character)) %>% mutate(pathway_3 = paste(pathway_1,pathway_2,pathway_3, sep = "_"))
+
+melt_congo_ko = all_congo_df %>% 
+                        as.data.table() %>%
+                        melt(variable.factor = FALSE)
+# agglomerate at pathway3 level
+path_glom_congo_df = melt_congo_ko %>%
+                                mutate(pathway_3 = paste(pathway_1,pathway_2,pathway_3, sep = "_")) %>%
+                                group_by(variable,pathway_3) %>%
+                                summarise(abundance = sum(value)) %>%
+                                pivot_wider(id_cols = pathway_3, names_from = "variable", values_from = "abundance", values_fill = 0)
+
+pathway_tax = path_glom_congo_df %>% 
+                mutate(KO = paste0("KO_", 1:nrow(.)), .before = 1) %>%
+                dplyr::select(KO, pathway_3) %>%
+                separate(pathway_3, sep = "_", into = c('pathway_1','pathway_2','pathway_3_clean'), remove = FALSE)
+
+# make a phyloseq object
+samples_picrust = colnames(path_glom_congo_df %>% column_to_rownames("pathway_3"))
+
+# remove CST V (only one sample) = sample_id = V057
+meta_meta_analysis = sample.data.frame(ps_congo_filt_spp_rclr) %>% 
+                            #left_join(CST, by = "sample_id") %>%
+                            filter(sampleID != "V057")
+
+# make a phyloseq object
+to_otu_table = path_glom_congo_df %>% 
+                    # mutate(across(where(is.numeric), ~abs(.))) %>%
+                    mutate(KO = paste0("KO_", 1:nrow(.)), .before = 1) %>%
+                    dplyr::select(-pathway_3) %>%
+                    column_to_rownames('KO') %>%
+                    dplyr::select(-V057)
+OTU = otu_table(as.matrix(to_otu_table), taxa_are_rows = TRUE)
+TAX = tax_table(as.matrix(pathway_tax %>% column_to_rownames('KO')))
+META = sample_data(meta_meta_analysis) # %>% column_to_rownames("sample_id"))
+ps_congo_picrust <- phyloseq(OTU, TAX, META)
+
+# saveRDS(ps_congo_picrust, file = paste0(data_folder,'ps_congo_picrust.RDS'))
+
+ps_congo_picrust = readRDS('data/ps_congo_picrust.RDS')
+to_otu_table = ps_congo_picrust %>% otu_table() %>% as.data.frame()
+meta_meta_analysis = sample.data.frame(ps_congo_picrust) 
+
+####---- LinDA ----####
+# INPUTS:
+# ASV by row and samples by columns
+# meta: samples by rows
+linda_input_asv <- to_otu_table
+
+linda_meta <- meta_meta_analysis 
+# run LinDA
+linda.obj <- linda(otu.tab = linda_input_asv,
+                meta = linda_meta,
+                # phyloseq.obj = NULL,
+                formula = "~CST",
+                type = 'count',
+                adaptive = TRUE, 
+                imputation = TRUE, 
+                # pseudo.cnt = 0.65, 
+                corr.cut = 0.1,
+                p.adj.method = 'BH', 
+                alpha = 0.05,
+                prev.cut = 0, 
+                lib.cut = 1, 
+                winsor.quan = 0.97, 
+                n.cores = cores
+                )
+
+
+# get the results
+linda_res_congo <- linda.obj$output %>% 
+                imap(., ~mutate(.x, name = .y)) %>% 
+                map_df(., ~rownames_to_column(., "KO") %>%
+                    as_tibble %>% 
+                    arrange(padj) %>%
+                    # reject H0??
+                    mutate(reject = ifelse(padj < 0.05, "Yes", "No"))) %>%
+                mutate(method = "LinDA")
+
+# linda_res %>% filter(padj < 0.05) %>% View()
+linda_res_congo = linda_res_congo %>% 
+        left_join(pathway_tax, by = "KO")
+
+# save results
+# write_csv(linda_res, "tables/DAA/linda_res_picrust_congo.csv")
+linda_res_congo <- read_csv("tables/DAA/linda_res_picrust_congo.csv")
+
+####---- ANCOM-BC ----####
+ancombc_out_congo <- ancombc2(
+                data = ps_congo_picrust,
+                assay_name = "counts",
+                # tax_level= "pathway_3",
+                fix_formula = "CST", 
+                p_adj_method = "fdr", 
+                verbose = T,
+                n_cl = cores)
+
+# store the results in res 
+ancombc_res_congo <- ancombc_out_congo$res %>%  
+                as.data.frame() %>%
+                pivot_longer(cols = -taxon, 
+                            names_to = "variable", 
+                            values_to = "value") %>%
+                # "merge" = preserve any extra characters after the first underscore in the second column.
+                separate(variable, c("stats", "name"), sep = "_", extra = "merge") %>%
+                pivot_wider(id_cols = c(taxon, name),
+                            names_from = "stats",
+                            values_from = "value") %>%
+                mutate(diff = if_else(diff == 1, TRUE, FALSE),
+                        method = "ANCOM-BC") %>%
+                rename(KO = taxon)
+
+ancombc_res_congo = ancombc_res_congo %>% 
+        left_join(pathway_tax, by = "KO")
+
+# save results
+# write_csv(ancombc_res_congo,"tables/DAA/ancombc_res_picrust_congo.csv")
+ancombc_res_congo <- read_csv("tables/DAA/ancombc_res_picrust_congo.csv")
+
+
+####--- ALDEx2 ----####
+df_aldex_congo <- ps_congo_picrust %>% 
+                otu_tibble("KO") %>% 
+                column_to_rownames("KO") %>%
+                mutate(across(where(is.numeric), ~round(.)))
+
+# make model matrix
+mm <- model.matrix(~ CST, data = meta_meta_analysis)
+
+# INPUT: ASV by rows and samples by columns
+# CLR transformation
+x <- aldex.clr(df_aldex_congo, mm, mc.samples=128, denom="all", verbose=F)
+# apply glm
+glm.test <- aldex.glm(x, mm)
+glm.effect <- aldex.glm.effect(x)
+
+# make a data frame
+aldex2_res_congo <- glm.effect %>% 
+                imap(., ~mutate(.x, name = .y)) %>%
+                map_df(., ~rownames_to_column(., "KO") %>%
+                        as_tibble) %>%
+                mutate(method = "ALDEx2")
+
+aldex2_res_congo = aldex2_res_congo %>% left_join(pathway_tax, by = "KO")
+# save results
+#write_csv(aldex2_res_congo, "tables/DAA/aldex2_res_picrust_congo.csv")
+aldex2_res_congo <- read_csv("tables/DAA/aldex2_res_picrust_congo.csv")
+
+# put all methods together and count how many taxa were identified 
+# score = intersection of identified taxa
+all_methods_congo <- linda_res_congo %>%
+            filter(padj < 0.05) %>%
+            dplyr::select(KO, LinDA = reject) %>%
+            distinct(KO, .keep_all = TRUE) %>%
+            mutate(LinDA = ifelse(LinDA == "No", FALSE, TRUE)) %>%
+    full_join(ancombc_res_congo %>% 
+                filter(q < 0.05) %>% 
+                dplyr::select(KO, ancombc = diff) %>%
+                distinct(KO, .keep_all = TRUE), 
+                by = "KO", 
+                relationship = "many-to-many") %>%
+    full_join(aldex2_res_congo %>% 
+                filter(abs(effect) > 0.5) %>%
+                dplyr::select(KO, aldex2 = effect) %>%
+                distinct(KO, .keep_all = TRUE),
+                by = "KO",
+                relationship = "many-to-many") %>%
+    mutate(aldex2 = if_else(abs(aldex2) >= 0.05, TRUE, FALSE),
+            across(-KO, function(x) ifelse(is.na(x), FALSE, x)),
+        score = rowSums(across(c(aldex2, ancombc, LinDA))),
+    ) %>% 
+    left_join(pathway_tax, by = "KO")
+
+
+# put all together for the upset plot
+all_methods_congo %>% filter(score >= 2)
+
+#write_csv(all_methods_congo, "tables/DAA/all_methods_picrust_congo.csv")
+all_methods_congo <- read_csv("tables/DAA/all_methods_picrust_congo.csv")
+```
+
+## Figure 5
+```{r, echo=FALSE, fig.width=15}
+CST_col = c("I" = "#ffd900b9","II" = "#F5530D", "III" = "#16FBCD", "IV" = "navy" ,"V"  = "#8D324D")
+
+all_methods_congo <- read_csv("all_methods_picrust_congo.csv")
+# get the KO IDs that were found in at least 2 DAA tools
+ko_daa_congo = all_methods_congo %>% filter(score >= 2) %>% pull(KO)
+ps_congo_picrust_rel = ps_congo_picrust %>% transform("compositional")
+path_df_clr_congo = ps_congo_picrust %>%
+                        otu_tibble("KO") %>%
+                                column_to_rownames("KO") %>%
+                                clr_cc()
+meta_congo = ps_congo_picrust %>%
+                        sample_tibble("sample_id") %>%
+                        select(sample_id, CST)
+path_tax_congo = ps_congo_picrust %>%
+                        tax_tibble("KO")
+
+mean_long_df <- ps_congo_picrust_rel %>%
+                                psmelt.dplyr() %>%
+                                group_by(OTU, CST) %>%
+                                mutate(mean = mean(abundance),
+                                        sd = sd((abundance))) %>%
+                                dplyr::select(OTU, CST, mean, sd) %>%
+                                distinct(mean, sd, .keep_all = TRUE) %>%
+                                pivot_longer(-c(OTU,   CST), names_to = "stats", values_to = "mean_values") %>%
+                                ungroup()
+
+mean_df <- mean_long_df %>% filter(!grepl("sd", stats))
+mean_df$sd <- mean_long_df %>% filter(grepl("sd", stats)) %>% pull(mean_values)
+
+mean_df %>%
+    rename(KO = OTU) %>%
+    filter(KO %in% ko_daa_congo) %>%
+    left_join(path_tax_congo, by = "KO") %>%
+    ggplot(aes(x = desc(CST), y = mean_values, fill = CST)) +
+        geom_bar(stat="identity", color="black",
+                    position=position_dodge()) +
+        geom_errorbar(aes(ymin=mean_values, ymax=mean_values+sd), width=.2,
+        position=position_dodge(.9)) +
+        scale_fill_manual(values = CST_col) +
+        coord_flip() +
+        ggh4x::facet_nested(pathway_1 + pathway_3_clean~., 
+                            scales = "free", switch = "y",
+                            nest_line = element_line(colour = "black")) +
+        labs(y = "Mean Relative Abundance") +
+            theme_classic() +
+            theme(strip.text.y.left = element_text(angle = 0, size = 18, hjust = 1),
+                # panel.border = element_rect(color = "grey", fill = NA),
+                strip.background = element_blank(),
+                axis.title.y = element_blank(),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank(),
+                axis.line.y = element_blank(),
+                legend.text = element_text(size = 18),
+                strip.placement = "outside",
+                axis.title.x = element_text(size = 18),
+                legend.position = "bottom",
+                # aspect.ratio = 0.4,
+                axis.line.x = element_line(),
+                # plot.margin=grid::unit(c(0,0,0,0), "mm"),
+                panel.spacing=unit(0,'lines'))
+
+#ggsave(paste0(output_folder, "figures/bar_plot_DAA_picrust_congo.pdf"), width = 20)
+```
+
+# Figure 6: Meta-analysis: Predicted KEGG pathways differentially abundant by health status
+## perform DAAs
+```{r, echo=FALSE}
+all_meta_analysis_df <- vroom::vroom(file ='tables/ko_df_meta_analysis_unstrat_with_annotation.tsv')
+
+melt_meta_df = all_meta_analysis_df %>%
+                as.data.table() %>%
+                melt(variable.factor = FALSE)
+
+# agglomerate at pathway3 level
+path_glom_meta_df = melt_meta_df %>%
+                                mutate(pathway_3 = paste(pathway_1,pathway_2,pathway_3, sep = "_")) %>%
+                                group_by(variable,pathway_3) %>%
+                                summarise(abundance = sum(value)) %>%
+                                pivot_wider(id_cols = pathway_3, names_from = "variable", values_from = "abundance", values_fill = 0)
+
+pathway_tax_meta = path_glom_meta_df %>% 
+                mutate(KO = paste0("KO_", 1:nrow(.)), .before = 1) %>%
+                dplyr::select(KO, pathway_3) %>%
+                separate(pathway_3, sep = "_", into = c('pathway_1','pathway_2','pathway_3_clean'), remove = FALSE)
+
+# make a phyloseq object
+samples_picrust = colnames(path_glom_meta_df %>% column_to_rownames("pathway_3"))
+load('data/ps_raw_all.RData')
+meta_meta_analysis = ps_raw %>%
+                        sample_tibble("sample_id") %>%
+                        # select(-Other_vaginal_infection) %>%
+                        mutate(Asymptomatic= replace(Asymptomatic, is.na(Asymptomatic), 0)) %>%
+                        mutate(BV= replace(BV, is.na(BV), 0)) %>%
+                        mutate(HIV= replace(HIV, is.na(HIV), 0)) %>%
+                        mutate(HPV= replace(HPV, is.na(HPV), 0)) %>%
+                        mutate(health_status = case_when(Asymptomatic == 1 ~ "Asymptomatic",
+                                                        HIV == 1 ~ "HIV",
+                                                        BV == 1 ~ "BV",
+                                                        HPV == 1 ~ "HPV",
+                                                        TRUE ~ "Asymptomatic")) %>% 
+                        filter(sample_id %in% samples_picrust)
+
+CST = read_delim("tables/metadata_final.tsv") %>%
+          filter(sampleID %in% samples_picrust) %>%
+          rename(sample_id = sampleID) %>%
+          dplyr::select(sample_id, CST) %>%
+            mutate(CST = case_when(str_detect(CST, "IV-A|IV-B|IV-C") ~ "IV",
+                                        TRUE ~ as.character(CST))) %>%
+            mutate(CST = factor(CST, levels = c("I", "II", "III", "IV", "V")))
+
+meta_meta_analysis = meta_meta_analysis %>% 
+                            left_join(CST, by = "sample_id")
+
+# make a phyloseq object
+to_otu_table = path_glom_meta_df %>% 
+                    mutate(across(where(is.numeric), ~abs(.))) %>%
+                    mutate(KO = paste0("KO_", 1:nrow(.)), .before = 1) %>%
+                    dplyr::select(-pathway_3) %>%
+                    column_to_rownames('KO')
+OTU_m = otu_table(as.matrix(to_otu_table), taxa_are_rows = TRUE)
+TAX_m = tax_table(as.matrix(pathway_tax_meta %>% column_to_rownames('KO')))
+META_m = sample_data(meta_meta_analysis %>% column_to_rownames("sample_id"))
+ps_meta_picrust <- phyloseq(OTU_m, TAX_m, META_m)
+
+# saveRDS(ps_meta_picrust,'ps_meta_picrust.RDS')
+
+ps_meta_picrust = readRDS('data/ps_meta_picrust.RDS')
+meta_meta_analysis = ps_meta_picrust %>% sample_tibble("sample_id")
+####---- LinDA ----####
+# Health Status + Study
+# INPUTS:
+# ASV by row and samples by columns
+# meta: samples by rows
+linda_input_asv <- ps_meta_picrust %>%
+                        otu_tibble("KO") %>%
+                        mutate(across(where(is.numeric), ~round(.))) %>%
+                        column_to_rownames("KO")
+
+linda_meta <- meta_meta_analysis %>%
+                    column_to_rownames("sample_id")
+
+# run LinDA
+linda.obj_meta <- linda(otu.tab = linda_input_asv,
+                meta = linda_meta,
+                # phyloseq.obj = NULL,
+                formula = "~health_status + study",
+                type = 'count',
+                adaptive = TRUE, 
+                imputation = TRUE, 
+                # pseudo.cnt = 0.65, 
+                corr.cut = 0.1,
+                p.adj.method = 'BH', 
+                alpha = 0.05,
+                prev.cut = 0, 
+                lib.cut = 1, 
+                winsor.quan = 0.97, 
+                n.cores = cores
+                )
+
+# get the results
+linda_res_meta <- linda.obj_meta$output %>%
+                imap(., ~mutate(.x, name = .y)) %>% 
+                map_df(., ~rownames_to_column(., "KO") %>%
+                    as_tibble %>% 
+                    arrange(padj) %>%
+                    # reject H0??
+                    mutate(reject = ifelse(padj < 0.05, "Yes", "No"))) %>%
+                mutate(method = "LinDA")
+
+# linda_res %>% filter(padj < 0.05) %>% View()
+
+# save results
+#write_csv(linda_res_meta,"tables/DAA/linda_res_picrust_meta.csv")
+linda_res_meta <- read_csv( "tables/DAA/linda_res_picrust_meta.csv")
+
+####---- ANCOM-BC ----####
+# prepare the phyloseq object
+# make a phyloseq object first
+# perform the ANCOM-BC analysis 
+ancombc_out_meta <- ancombc2(
+                data = ps_meta_picrust,
+                assay_name = "counts",
+                # tax_level= "pathway_2",
+                fix_formula = "health_status + study", 
+                p_adj_method = "fdr", 
+                pseudo = 0,
+                pseudo_sens = TRUE,
+                prv_cut = 0, # prev filtering has been done above already
+                lib_cut = 0, 
+                group = "health_status", 
+                struc_zero = TRUE, 
+                neg_lb = TRUE,
+                iter_control = list(tol = 1e-5, max_iter = 20, verbose = FALSE),
+                em_control = list(tol = 1e-5, max_iter = 100), # use max_iter >= 100 on real data 
+                alpha = 0.05, 
+                global = TRUE, # multi group comparison will be deactivated automatically 
+                verbose = T,
+                n_cl = cores) 
+
+# store the results in res 
+ancombc_res_meta <- ancombc_out_meta$res %>%  
+                as.data.frame() %>%
+                pivot_longer(cols = -taxon, 
+                            names_to = "variable", 
+                            values_to = "value") %>%
+                # "merge" = preserve any extra characters after the first underscore in the second column.
+                separate(variable, c("stats", "name"), sep = "_", extra = "merge") %>%
+                pivot_wider(id_cols = c(taxon, name),
+                            names_from = "stats",
+                            values_from = "value") %>%
+                mutate(diff = if_else(diff == 1, TRUE, FALSE),
+                        method = "ANCOM-BC") %>%
+                rename(KO = taxon)
+
+# save results
+#write_csv(ancombc_res_meta,"tables/DAA/ancombc_res_picrust_meta.csv")
+ancombc_res_meta <- read_csv("tables/DAA/ancombc_res_picrust_meta.csv")
+
+
+####--- ALDEx2 ----####
+df_aldex_meta <- ps_meta_picrust %>% 
+  otu_tibble("KO") %>% 
+  column_to_rownames("KO") %>%
+  mutate(across(where(is.numeric), ~round(.)))
+
+# make model matrix
+mmm <- model.matrix(~ health_status + study, data = meta_meta_analysis)
+
+# INPUT: ASV by rows and samples by columns
+# CLR transformation
+xm <- aldex.clr(df_aldex_meta, mmm, mc.samples=128, denom="all", verbose=F)
+# apply glm
+glm.test_meta <- aldex.glm(xm, mmm)
+glm.effect_meta <- aldex.glm.effect(xm)
+
+# make a data frame
+aldex2_res_meta <- glm.effect_meta %>% 
+                imap(., ~mutate(.x, name = .y)) %>%
+                map_df(., ~rownames_to_column(., "KO") %>%
+                        as_tibble) %>%
+                mutate(method = "ALDEx2")
+
+# save results
+#write_csv(aldex2_res_meta, "tables/DAA/aldex2_res_picrust_meta.csv")
+aldex2_res_meta <- read_csv("tables/DAA/aldex2_res_picrust_meta.csv")
+
+# put all methods together and count how many taxa were identified 
+# score = intersection of identified taxa
+all_methods_meta <- linda_res_meta %>%
+            filter(padj < 0.05) %>%
+            dplyr::select(KO, LinDA = reject) %>%
+            distinct(KO, .keep_all = TRUE) %>%
+            mutate(LinDA = ifelse(LinDA == "No", FALSE, TRUE)) %>%
+    full_join(ancombc_res_meta %>% 
+                filter(q < 0.05) %>% 
+                dplyr::select(KO, ancombc = diff) %>%
+                distinct(KO, .keep_all = TRUE), 
+                by = "KO", 
+                relationship = "many-to-many") %>%
+    full_join(aldex2_res_meta %>% 
+                filter(abs(effect) > 0.5) %>%
+                dplyr::select(KO, aldex2 = effect) %>%
+                distinct(KO, .keep_all = TRUE),
+                by = "KO",
+                relationship = "many-to-many") %>%
+    mutate(aldex2 = if_else(abs(aldex2) >= 0.05, TRUE, FALSE),
+            across(-KO, function(x) ifelse(is.na(x), FALSE, x)),
+        score = rowSums(across(c(aldex2, ancombc, LinDA))),
+    )
+
+only_health_status <- linda_res_meta %>%
+            filter(padj < 0.05) %>%
+            filter(name == "health_statusHIV") %>%
+            dplyr::select(KO, LinDA = reject) %>%
+            distinct(KO, .keep_all = TRUE) %>%
+            mutate(LinDA = ifelse(LinDA == "No", FALSE, TRUE)) %>%
+    full_join(ancombc_res_meta %>% 
+                filter(q < 0.05) %>% 
+                filter(name == "health_statusHIV") %>%
+                dplyr::select(KO, ancombc = diff) %>%
+                distinct(KO, .keep_all = TRUE), 
+                by = "KO", 
+                relationship = "many-to-many") %>%
+    full_join(aldex2_res_meta %>% 
+                filter(abs(effect) > 0.5) %>%
+                filter(name == "health_statusHIV") %>%
+                dplyr::select(KO, aldex2 = effect) %>%
+                distinct(KO, .keep_all = TRUE),
+                by = "KO",
+                relationship = "many-to-many") %>%
+    mutate(aldex2 = if_else(abs(aldex2) >= 0.05, TRUE, FALSE),
+            across(-KO, function(x) ifelse(is.na(x), FALSE, x)),
+        score = rowSums(across(c(aldex2, ancombc, LinDA))),
+    )
+
+# check which variables each genus was significant
+variables_all <- linda_res_meta %>%
+                filter(padj < 0.05) %>%
+                dplyr::select(KO, name) %>%
+                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                group_by(KO) %>%
+                summarise(variable_linda = paste(unique(variable), collapse = " and ")) %>%
+                full_join(ancombc_res_meta %>%
+                            filter(q < 0.05) %>%
+                            dplyr::select(KO, name) %>%
+                            filter(name != "(Intercept)") %>%
+                                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                                group_by(KO) %>%
+                            summarise(variable_ancombc = paste(unique(variable), collapse = " and ")),
+                        by = "KO") %>%
+                full_join(aldex2_res_meta %>%
+                                filter(abs(effect) > 0.5) %>% 
+                                dplyr::select(KO, name) %>%
+                                mutate(variable =  str_extract_all(name, "(health_status|study)")) %>%
+                                group_by(KO) %>%
+                                summarise(variable_aldex2 = paste(unique(variable), collapse = " and ")),
+                        by = "KO") %>%
+                left_join(pathway_tax_meta, by = "KO")
+
+
+# put all together for the upset plot
+all_methods_meta <- all_methods_meta %>% left_join(variables_all)
+
+all_methods_meta %>% filter(score > 2)
+
+all_methods_meta = all_methods_meta %>% left_join(pathway_tax_meta, by = "KO")
+
+#write_csv(all_methods_meta, "tables/DAA/all_methods_picrust_meta.csv")
+all_methods_meta <- read_csv("tables/DAA/all_methods_picrust_meta.csv")
+```
+
+## Figure 6
+```{r, echo=FALSE, fig.height = 28, fig.width = 20}
+# load files
+ps_meta_picrust = readRDS("data/ps_meta_picrust.RDS")
+# health Status
+all_methods_meta <- read_csv("tables/DAA/all_methods_picrust_meta.csv")
+# get the KO IDs that were found in at least 2 DAA tools
+ko_daa_meta = all_methods_meta %>% 
+                        filter(score >= 2) %>% 
+                        filter(if_any(starts_with("variable"), ~!str_detect(., "health_status"))) %>%
+                        pull(KO)
+
+
+ps_meta_picrust_rel = ps_meta_picrust %>% transform("compositional")
+path_tax_meta = ps_meta_picrust %>%
+                        tax_tibble("KO")
+
+
+mean_long_df <- ps_meta_picrust_rel %>%
+                                psmelt.dplyr() %>%
+                                group_by(OTU, health_status) %>%
+                                mutate(mean = mean(abundance),
+                                        sd = sd((abundance))) %>%
+                                select(OTU, health_status, mean, sd) %>%
+                                distinct(mean, sd, .keep_all = TRUE) %>%
+                                pivot_longer(-c(OTU,   health_status), names_to = "stats", values_to = "mean_values")
+
+mean_df <- mean_long_df %>% filter(!grepl("sd", stats))
+mean_df$sd <- mean_long_df %>% filter(grepl("sd", stats)) %>% pull(mean_values)
+
+mean_df %>%
+    rename(KO = OTU) %>%
+    filter(KO %in% ko_daa_meta) %>%
+    left_join(path_tax_meta, by = "KO") %>%
+    ggplot(aes(x = health_status, y = mean_values, fill = health_status)) +
+        geom_bar(stat="identity", color="black",
+                    position=position_dodge()) +
+        geom_errorbar(aes(ymin=mean_values, ymax=mean_values+sd), width=.2,
+        position=position_dodge(.9)) +
+        scale_fill_manual(values = c("HIV" = "#DC3220", "Asymptomatic" = "#005AB5")) +
+        coord_flip() +
+        facet_nested(pathway_1 + pathway_3_clean~., 
+                            scales = "free", switch = "y",
+                            nest_line = element_line(colour = "black")) +
+        labs(y = "Mean Relative Abundance") +
+            theme_classic() +
+            theme(strip.text.y.left = element_text(angle = 0, size = 14, hjust = 1),
+                # panel.border = element_rect(color = "grey", fill = NA),
+                strip.background = element_blank(),
+                axis.title.y = element_blank(),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank(),
+                axis.line.y = element_blank(),
+                strip.placement = "outside",
+                axis.title.x = element_text(size = 14),
+                legend.position = "bottom",
+                # aspect.ratio = 0.3,
+                axis.line.x = element_line(),
+                panel.spacing=unit(0.3,'lines'))
+
+# ggsave(paste0(output_folder, "figures/bar_plot_DAA_picrust_meta.pdf"), height = 28, width = 20)
+```
+
+# Figure 7: CQI-PMTCT: Correlation between CVMB and immune mediators
+
+```{r data prep, echo=FALSE}
+
+#specify the colums that have immune mediator information
+enrol_columns <-
+  grep("^enrol", colnames(sample_data(ps_congo_filt_spp_rclr)), value = TRUE)
+#subset phyloseq 
+ps_all_cyto <-
+  subset_samples(ps_congo_filt_spp_rclr, rowSums(is.na(sample_data(
+    ps_congo_filt_spp_rclr
+  )[, enrol_columns])) == 0) #53 samples
+
+otu_cyt <- as.data.frame(otu_table(ps_all_cyto))
+
+meta_cyt_log <- sample.data.frame(ps_all_cyto) %>% select(all_of(enrol_columns)) %>% mutate(across(where(is.character), as.numeric)) %>% log10()
+
+#meta_cong <- sample.data.frame(ps_congo_filt_spp_rclr)
+
+results_list <- list()
+# Loop through each cytokine and OTU pair
+for (cytokine_name in colnames(meta_cyt_log)) {
+  for (otu_name in colnames(otu_cyt)) {
+    # Extract the data for the current pair
+    x <- otu_cyt[[otu_name]]
+    y <- meta_cyt_log[[cytokine_name]]
+    
+    # Perform linear regression
+    model <- lm(y ~ x)
+    
+    # Extract the Spearman correlation coefficient (rho)
+    rho <- cor(x, y, method = "spearman")
+    
+    # Extract p-value from the model summary
+    p_value <- summary(model)$coefficients[2, 4]
+    
+    # Store the results in a list
+    results_list[[paste(otu_name, cytokine_name, sep = "_")]] <- list(
+      OTU = otu_name,
+      Cytokine = cytokine_name,
+      Rho = rho,
+      PValue = p_value
+    )
+  }
+}
+
+# Convert the results list to a data frame
+results_df <- do.call(rbind, lapply(results_list, function(res) {
+  data.frame(
+    OTU = res$OTU,
+    Cytokine = res$Cytokine,
+    Rho = res$Rho,
+    PValue = res$PValue
+  )
+}))
+
+# Add taxonomic information to the results
+taxa <- tax_table(ps_all_cyto) %>%
+  as.data.frame() %>%
+  rownames_to_column("OTU") %>%
+  mutate(
+    Taxon = case_when(
+      !is.na(Species) ~ paste(sub("^g__", "", Genus), sub("^s__", "", Species), sep = "_"),
+      !is.na(Genus) ~ Genus,
+      !is.na(Family) ~ Family,
+      !is.na(Order) ~ Order,
+      !is.na(Class) ~ Class,
+      !is.na(Phylum) ~ Phylum,
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  select(-Kingdom, -Species, -Genus, -Family, -Order, -Class, -Phylum)
+
+# Join taxonomic information with the results
+corr_results_df <- results_df %>% left_join(taxa, by = "OTU")
+
+# Adjust p-values using the Benjamini-Hochberg method
+corr_results_df$qvalue <- p.adjust(corr_results_df$PValue, method = "BH")
+
+# Save the full results to a CSV file
+# write.csv(results_df, "stats/congo/linear_regression_results_log.csv", row.names = FALSE)
+
+# Define the top 3 OTUs
+top3 <- c("ASV1", "ASV2", "ASV4")
+
+# Filter results for the top 10 OTUs and significant p-values (PValue <= 0.05)
+corr_results_df_top3 <- corr_results_df %>%
+  filter(OTU %in% top3) %>%
+  filter(PValue <= 0.05)
+
+##Shannon
+
+# Load alpha diversity data
+alpha_div <- read_csv("tables/congo_alpha_div.csv")
+
+# Filter and select relevant columns
+alpha_div <- alpha_div %>%
+  select(sampleID, `Shannon Entropy`, CST) %>%
+  filter(sampleID %in% rownames(meta_cyt_log))
+
+# Initialize an empty list to store results
+results_list_alpha <- list()
+
+# Loop through each cytokine
+for (cytokine_name in colnames(meta_cyt_log)) {
+  # Extract the data for the current pair
+  x <- alpha_div$`Shannon Entropy`
+  y <- meta_cyt_log[[cytokine_name]]
+  
+  # Perform linear regression
+  model <- lm(y ~ x)
+  
+  # Extract the Spearman correlation coefficient (rho)
+  rho <- cor(x, y, method = "spearman")
+  
+  # Extract p-value from the model summary
+  p_value <- summary(model)$coefficients[2, 4]
+  
+  # Store the results in a list
+  results_list_alpha[[cytokine_name]] <- list(
+    Cytokine = cytokine_name,
+    Rho = rho,
+    PValue = p_value,
+    Model = model
+  )
+}
+
+# Convert the results list to a data frame
+corr_results_alpha <- do.call(rbind, lapply(results_list_alpha, function(res) {
+  data.frame(
+    Cytokine = res$Cytokine,
+    Rho = res$Rho,
+    PValue = res$PValue
+  )
+}))
+
+# Save the results to a CSV file
+# write.csv(results_df_alpha, "stats/congo/shannon_cytokine_correlation_results.csv", row.names = FALSE
+
+
+```
+
+
+## A-B.Correlation of MMP2 and CXCL13 to shannon diversity
+
+```{r, echo=FALSE}
+# Loop through each row in the results_df_alpha data frame
+for (i in 1:nrow(corr_results_alpha)) {
+  # Extract the cytokine name, rho, and p-value
+  cytokine_name <- corr_results_alpha$Cytokine[i]
+  rho <- corr_results_alpha$Rho[i]
+  p_value <- corr_results_alpha$PValue[i]
+  
+  # Check if the p-value is significant (p <= 0.06)
+  if (p_value <= 0.06) {
+    # Extract the data for the current cytokine
+    x <- alpha_div$`Shannon Entropy`
+    y <- meta_cyt_log[[cytokine_name]]
+    
+    # Generate the scatter plot
+    p <- ggplot(data = data.frame(x = x, y = y), aes(x = x, y = y)) +
+      geom_point() +
+      geom_smooth(method = "lm", color = "blue") +
+      labs(
+        title = paste("Scatter Plot: Shannon Entropy vs", cytokine_name),
+        subtitle = paste("r =", round(rho, 3), "| p =", round(p_value, 3)),
+        x = "Shannon Entropy",
+        y = cytokine_name
+      ) +
+      theme_minimal()
+    
+    # Output the plot directly in the R Markdown document
+    print(p)
+  }
+}
+```
+
+## C:Correlation of L.iners with sCD163
+
+```{r, echo=FALSE}
+# Loop through each row in the corr_results_df_top3 data frame
+for (i in 1:nrow(corr_results_df_top3)) {
+  # Extract the ASV name, cytokine name, rho, and p-value
+  otu_name <- corr_results_df_top3$OTU[i]
+  cytokine_name <- corr_results_df_top3$Cytokine[i]
+  rho <- corr_results_df_top3$Rho[i]
+  p_value <- corr_results_df_top3$PValue[i]
+  
+  # Check if the p-value is significant (p <= 0.09)
+  if (p_value <= 0.06) {
+    # Extract the data for the current ASV and cytokine
+    x <- otu_cyt[[otu_name]]  # ASV abundance
+    y <- meta_cyt_log[[cytokine_name]]  # Cytokine level
+    
+    # Generate the scatter plot
+    p <- ggplot(data = data.frame(x = x, y = y), aes(x = x, y = y)) +
+      geom_point() +
+      geom_smooth(method = "lm", color = "blue") +
+      labs(
+        title = paste("Scatter Plot:", otu_name, "vs", cytokine_name),
+        subtitle = paste("r =", round(rho, 3), "| p =", round(p_value, 3)),
+        x = otu_name,
+        y = cytokine_name
+      ) +
+      theme_minimal()
+    
+    # Output the plot directly in the R Markdown document
+    print(p)
+  }
+}
+```
+
+## D:Levels of sTNFRSF1A between CST III and IV
+
+```{r, echo=FALSE}
+
+meta_cyt_log <- meta_cyt_log %>%
+  rownames_to_column(var = "sampleID")
+CST_congo <- meta_congo %>% dplyr::select(CST, sampleID=sample_id)
+meta_cyt_log2 <- left_join(meta_cyt_log, CST_congo, by ="sampleID")
+
+
+meta_cyt_log2 <- meta_cyt_log2 %>% filter(CST != "II", CST !="V")
+meta_cyt_log2<- meta_cyt_log2 %>% select(CST, everything())
+meta_cyt_log2 <- meta_cyt_log2 %>%
+  mutate(across(starts_with("enrol"), as.numeric))
+CST_cols = c("III" = "#16FBCD", "IV" = "navy")
+
+
+corr_results_cst <- list()
+
+# Loop through each cytokine column
+for (col in names(meta_cyt_log2)[3:46]) {
+  # Perform Wilcoxon test
+  wilcox_test <- wilcox.test(meta_cyt_log2[[col]] ~ meta_cyt_log2$CST)
+  p_value <- wilcox_test$p.value
+  
+  # Store the results in the list
+  corr_results_cst[[col]] <- list(
+    Cytokine = col,
+    PValue = p_value
+  )
+}
+
+# Convert the results list to a data frame
+corr_results_df_cst <- do.call(rbind, lapply(corr_results_cst, function(res) {
+  data.frame(
+    Cytokine = res$Cytokine,
+    PValue = res$PValue
+  )
+}))
+
+# Save the results to a CSV file
+# write.csv(corr_results_df, file = "stats/congo/cytokine_cst_correlations.csv", row.names = FALSE)
+
+# Filter for significant results (p <= 0.05)
+significant_results <- corr_results_df_cst %>% filter(PValue <= 0.05)
+
+# Loop through significant cytokines and generate boxplots
+for (col in significant_results$Cytokine) {
+  meta_cyt_log2[[col]] <- remove_outliers(meta_cyt_log2[[col]])
+  p <- ggplot(meta_cyt_log2 %>% filter(!is.na(CST)), 
+             aes(x = CST, y = !!sym(col), fill = CST)) +  # Corrected aesthetics
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(color = "black", fill = "white", alpha = 0.5, height = 0) +
+    labs(
+      y = paste(sub("^enrol_", "", col)),
+      x = " ",
+      caption = paste("p =", round(wilcox.test(meta_cyt_log2[[col]] ~ meta_cyt_log2$CST)$p.value, 4))
+    ) +
+    theme(
+      legend.position = "none", 
+      panel.background = element_rect(fill = NA, colour = "black"),
+      panel.border = element_rect(color = "black", fill = NA),
+      axis.line = element_line(color = "black"),
+      axis.line.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0), size = 16, face = "bold", family = "sans"),
+      axis.text.y = element_text(size = 18, face = "bold", family = "sans"),
+      plot.caption = element_text(size = 16, face = "bold", family = "sans")
+    ) +
+    scale_fill_manual(values = CST_cols)
+  
+  print(p)
+}
+
+```
+
+# Supplemetary Figures 
+## Fig S2: Heatmap of correlations between all taxa and immune mediators in the CQI-PMTCT cohort
+
+```{r, echo=FALSE, fig.width=11, fig.height=10}
+corr_df <- read.csv("tables/linear_regression_results_log.csv", header = T, sep = ";")
+
+#count numbe of samples in each taxo
+taxa <-
+  tax_table(ps_congo_filt_spp_rclr) %>% as.data.frame()  %>% rownames_to_column("asvid") %>% mutate(
+    Taxon = case_when(
+      !is.na(Species) ~ paste(sub("^g__", "", Genus), sub("^s__","", Species), sep = "_"),!is.na(Genus) ~ (Genus),!is.na(Family) ~ Family,!is.na(Order) ~ Order,!is.na(Class) ~ Class,!is.na(Phylum) ~ Phylum,
+      TRUE ~ "Unknown"
+    )
+  ) %>% select(-Kingdom,-Species,-Genus,-Family,-Order,-Class,-Phylum)
+
+ top10 <- c("Lactobacillus_iners", "Bifidobacterium_388775_Bifidobacterium leopoldii",
+            "Bifidobacterium_388775_Bifidobacterium vaginale", "Lactobacillus_crispatus",
+            "Fannyhessea_vaginae", "UBA629_sp005465875", "Lactobacillus_gasseri_329736",
+            "Megasphaera_A_38692_lornae", "Sneathia_vaginalis", "Prevotella_amnii")
+ top10<- rev(top10)
+ # Get the rest of the taxa ordered according to taxa_hclust
+ 
+ taxa_hclust <- corr_df %>% 
+  dplyr::select(Cytokine, Taxon, Rho) %>% 
+  tidyr::pivot_wider(
+    id_cols = Taxon, names_from = Cytokine, values_from = Rho
+  ) %>% mutate_at(vars(-Taxon), ~replace_na(., 0)) %>% 
+  tibble::column_to_rownames("Taxon") %>% 
+  as.matrix() %>% 
+  stats::dist(method = "euclidean") %>% 
+  hclust(method = "ward.D2")
+
+#taxa_order <- taxa_hclust$labels[taxa_hclust$order]
+ 
+ rest_taxa <- taxa_hclust$labels[taxa_hclust$order]
+ rest_taxa <- rest_taxa[!rest_taxa %in% top10]
+ 
+ # Combine the top 10 and the rest of the taxa
+ new_taxa_order <- c(rest_taxa, top10)
+ 
+ # Step 2: Plot the heatmap with the new taxa order
+ corr_df %>% 
+   ggplot(aes(x = Cytokine, y = Taxon)) +
+   geom_tile(aes(fill = Rho), color = "grey40") +
+   geom_point(
+     data = function(x) filter(x, PValue < 0.05),
+     shape = "asterisk", size = 1
+   ) +
+   geom_point(
+     data = function(x) filter(x, qvalue < 0.05),
+     shape = "circle", size = 3
+   ) +
+   scale_y_discrete(limits = new_taxa_order) +  # Use the new taxa order here
+   scale_fill_distiller(palette = "PiYG", limits = c(-0.55, 0.55)) + 
+   theme_minimal() + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+   labs(
+     x = "Cytokine", y = "Species", fill = "Spearman's\nRank\nCorrelation",
+     caption = paste(
+       "Asterisk indicates p < 0.05, not FDR adjusted",
+       "Filled circle indicates FDR corrected p < 0.05", sep = "\n"
+     )
+   )
+```
+
+## Fig S3: Covariates explaining microbial variation in the CVMB of the integrated datasets
+
+```{r, echo=FALSE}
+#load phyloseq
+ps_filt_spp_clr_zero_adj <- readRDS("data/ps_filt_spp_clr_zero_adj.RDS")
+meta_all <- sample.data.frame(ps_filt_spp_clr_zero_adj)
+meta_all$racioethnicity[is.na(meta_all$racioethnicity)] <- "unknown" 
+meta_all2 <- meta_all[, colSums(is.na(meta_all)) < 166]
+
+otu_all <- as.data.frame(otu_table(ps_filt_spp_clr_zero_adj)) %>% t()
+# Columns with any NAs
+
+colnames(meta_all2)[colSums(is.na(meta_all2)) > 0]
+colSums(is.na(meta_all2)) / nrow(meta_all2) * 100
+sapply(lapply(meta_all2, unique), length)
+
+#remove columns with NAs or 1 level
+meta_all2 <- meta_all2 %>% select(-primer_pair, -PCR_cycles, -condition, -HIV, -Asymptomatic, -library_type, -Pregnant, -BMI_Bin, -BV, -HPV)
+
+all_dbrda <- c()
+set.seed(2024)
+for (i in 1:ncol(meta_all2)) {
+  cap <- capscale(otu_all ~ meta_all2[,i], distance="euclidean", na.action=na.omit)
+  av <- cap %>% 
+    anova.cca %>% 
+    as.data.frame
+  pval <- av$`Pr(>F)`[1]
+  Fstat <- av$`F`[1]
+  r2 <- RsquareAdj(cap)[[1]]
+  adjr2 <- RsquareAdj(cap)[[2]]
+  all_dbrda <- rbind(all_dbrda, cbind(Fstat,r2,adjr2,pval))
+  print(all_dbrda)
+}
+
+rownames(all_dbrda) <- colnames(meta_all2)
+all_dbrda <- as.data.frame(cbind(all_dbrda, padj=p.adjust(all_dbrda[,"pval"], method="BH")), stringsAsFactors=F)
+significant <- all_dbrda[all_dbrda[,"padj"]<0.05,]
+significant <- na.omit(significant[order(significant$adjr2, decreasing = T),])
+print(paste0(nrow(significant), " variables can individually explain part of the (active) microbiome variation in these samples."))
+# Stepwise multivariate RDA, with only significant variables
+metadata_curated_filtered <- meta_all2[,rownames(significant), drop=F] # select only significant variables
+metadata_curated_filtered <- na.omit(metadata_curated_filtered) # samples with NAs need to be removed from the entire matrix for multivariate analysis 664 ->625
+
+# remove samples with NAs also from the CLR object
+reduced_spp_filt_n0_clr <- otu_all[rownames(metadata_curated_filtered),]
+
+metadata_curated_filtered <- metadata_curated_filtered %>% mutate(across(where(is.numeric), as.factor))
+
+# set limits for the stepwise analysis, from null model (fit0) to a full model with the 20 selected variables
+fit0 <- capscale(reduced_spp_filt_n0_clr ~ 1, data=metadata_curated_filtered, distance="euclidean")
+fit1 <- capscale(reduced_spp_filt_n0_clr ~ ., data=metadata_curated_filtered, distance="euclidean")
+
+# run stepwise analysis between the two limits established
+fin_dbrda <- ordiR2step(fit0, fit1, data=metadata_curated_filtered, Pin = 0.05, R2scope = TRUE, pstep = 100, perm.max = 200, trace=F)
+
+# Print call and anova
+fin_dbrda$call
+fin_dbrda$anova
+
+
+significant <- as.tibble(cbind(significant, covariates=rownames(significant)))
+anova_table <- as.tibble(cbind(fin_dbrda$anova, covariates=gsub(rownames(fin_dbrda$anova),  pattern="\\+ ",replacement="")))
+
+significant <- significant %>% 
+  full_join(anova_table, by="covariates")
+
+significant[is.na(significant$R2.adj),"R2.adj"] <- max(significant$R2.adj,na.rm=T)
+significant <- significant %>% 
+  filter(covariates!="<All variables>")
+
+# gather, define sorting order, and plot
+significantL <- gather(significant, key = "Class", value="EffectSize", adjr2, R2.adj)
+
+significantL[significantL$Class=="adjr2", "Class"] <- "Individual"
+significantL[significantL$Class=="R2.adj", "Class"] <- "Cumulative, non-redundant"
+
+# Combine the two tables into a list
+tables <- list(table1 = significant, table2 = significantL)
+
+# Apply the mutate operation to both tables
+tables <- lapply(tables, function(df) {
+  df %>%
+    mutate(covariates = case_when(
+      covariates == "Age_Bin" ~ "Age Bin",
+      covariates == "study" ~ "Study",
+      covariates == "country" ~ "Country",
+      covariates == "sequencer" ~ "Sequencing Platform",
+      covariates == "racioethnicity" ~ "Self-reported Racioethnicity",
+      covariates == "sample_loc" ~ "Sampling Location",
+      covariates == "continent" ~ "Continent",
+      covariates == "unsdg_region" ~ "UNSDG Region",
+      covariates == "Racioethnic_category" ~ "Racioethnic Bin",
+      covariates == "sample_loc_simple" ~ "Sampling Location Bin",
+      covariates == "CST" ~ "CST",
+      covariates == "Trimester" ~ "Trimester",
+      covariates == "health_status" ~ "Health Status (PLWH-ART/ PWoH)"
+    ))
+})
+#extract tables
+significant <- tables$table1
+significantL <- tables$table2
+
+
+significantL <- significantL %>% #CHANGE FOR EACH TABLE
+  mutate("Meta Category" = case_when(
+    covariates %in% c("Study", "Sequencing Platform", "Sampling Location Bin", "Sampling Location") ~ "Technical",
+    covariates %in% c("Continent", "UNSDG Region", "Country", "Self-reported Racioethnicity", "Racioethnic Bin", "Age Bin", "CST", "Trimester") ~ "Host related",
+    covariates %in% c("Health Status (PLWH-ART/ PWoH)") ~ "Disease",
+    TRUE ~ "Other"  # Default category for unmatched metadata
+  ))
+
+#Specify order
+positions <- rev.default(significant$covariates[order(significant$R2.adj, significant$AIC,-significant$adjr2,decreasing=F)])
+#plot
+ggplot(significantL, aes(x = covariates, y = EffectSize)) +
+  geom_bar(aes(color = NULL, fill = `Meta Category`, alpha=Class), 
+           stat = "identity", position = position_dodge()) + 
+  ggpubr::rotate() + theme_bw() +
+  scale_x_discrete(limits = positions) +
+  scale_alpha_manual(values=c(0.6,1)) +
+  geom_vline(xintercept = nrow(significant)-(nrow(anova_table)-1.5))+
+  labs(x="Covariates", y="Effect size") +  scale_fill_brewer(palette = "Dark2")
+
+```
+
