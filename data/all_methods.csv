@@ -1,0 +1,46 @@
+Species,LinDA,ancombc,aldex2,score,variable_linda,variable_ancombc,variable_aldex2
+f__Bacteroidaceae_g__Prevotella_s__melaninogenica,TRUE,TRUE,FALSE,2,health_status and study,health_status,NA
+f__Lactobacillaceae_g__Lactobacillus_s__hominis,TRUE,FALSE,TRUE,2,health_status and study,NA,study
+f__Bradymonadaceae_g__Lujinxingia_s__litoralis,TRUE,FALSE,TRUE,2,health_status and study,NA,study
+f__Lachnospiraceae_g__UBA629_s__sp005465875,TRUE,TRUE,FALSE,2,study,study,NA
+f__Megasphaeraceae_g__Megasphaera_A_38692_s__lornae,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Bacteroidaceae_g__Prevotella_s__buccalis,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Nanoperiomorbaceae_g__Nanoperiomorbus_s__sp004136275,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Lactobacillaceae_g__Lactobacillus_s__crispatus,TRUE,TRUE,TRUE,3,study,health_status,study
+f__Sphingomonadaceae_g__Sphingomonas_L_486704_s__aerolata,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Fastidiosipilaceae_g__KA00274_s__sp001552885,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Lactobacillaceae_g__Lactobacillus_s__johnsonii,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Lactobacillaceae_g__Lactobacillus_s__gasseri_329736,TRUE,TRUE,TRUE,3,study,health_status,study
+f__Lactobacillaceae_g__Lactobacillus_s__acidophilus,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Atopobiaceae_g__Fannyhessea_s__vaginae,TRUE,FALSE,TRUE,2,study,NA,health_status and study
+f__Lactobacillaceae_g__Lactobacillus_s__gallinarum,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Bifidobacteriaceae_g__Bifidobacterium_388775_s__Bifidobacterium leopoldii,TRUE,FALSE,TRUE,2,study,NA,health_status and study
+f__Lactobacillaceae_g__Limosilactobacillus_s__reuteri,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Streptococcaceae_g__Streptococcus_s__anginosus,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Lactobacillaceae_g__Lactobacillus_s__jensenii_330180,TRUE,TRUE,TRUE,3,study,health_status and study,study
+f__Peptoniphilaceae_g__Finegoldia_s__magna_H,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Dialisteraceae_g__Dialister_s__micraerophilus,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Bacteroidaceae_g__Prevotella_s__timonensis,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Aerococcaceae_g__Aerococcus_s__christensenii,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Bacteroidaceae_g__Prevotella_s__bivia,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Leptotrichiaceae_g__Sneathia_s__vaginalis,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Leptotrichiaceae_g__Streptobacillus_993623_s__Streptobacillus moniliformis,TRUE,FALSE,TRUE,2,study,NA,study
+f__Mycoplasmoidaceae_g__Ureaplasma_s__urealyticum,TRUE,FALSE,TRUE,2,study,NA,study
+f__Leptotrichiaceae_g__Sneathia_s__sanguinegens,TRUE,FALSE,TRUE,2,study,NA,study
+f__Mycoplasmoidaceae_g__Ureaplasma_s__parvum,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Veillonellaceae_g__Veillonella_A_s__montpellierensis,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Peptoniphilaceae_g__Peptoniphilus_A_s__gorbachii,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Peptostreptococcaceae_256921_g__Peptostreptococcus_s__anaerobius,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Peptoniphilaceae_g__Anaerococcus_s__prevotii,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Mycobacteriaceae_g__Corynebacterium_s__tuberculostearicum,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Peptoniphilaceae_g__Parvimonas_s__parva,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Gemellaceae_g__Gemella_s__asaccharolytica,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Dialisteraceae_g__Dialister_s__sp001553355,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Bacteroidaceae_g__Prevotella_s__amnii,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Metamycoplasmataceae_g__Metamycoplasma_s__hominis,TRUE,TRUE,FALSE,2,study,health_status,NA
+f__Eggerthellaceae_g__Berryella_s__sp001552935,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Bifidobacteriaceae_g__Bifidobacterium_388775_s__Bifidobacterium vaginale,TRUE,FALSE,FALSE,1,study,NA,NA
+f__Atopobiaceae_g__Fannyhessea_s__massiliense,FALSE,TRUE,FALSE,1,NA,health_status,NA
+f__Bacteroidaceae_g__Prevotella_s__denticola,FALSE,TRUE,FALSE,1,NA,health_status,NA
+f__Bacteroidaceae_g__Prevotella_s__sp000758925,FALSE,TRUE,FALSE,1,NA,health_status,NA
+f__Enterobacteriaceae_A_g__Escherichia_710834_s__Escherichia coli,FALSE,TRUE,FALSE,1,NA,health_status,NA
