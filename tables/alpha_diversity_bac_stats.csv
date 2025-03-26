@@ -1,0 +1,44 @@
+.y.,group1,group2,n1,n2,statistic,p,p.adj,p.adj.signif,variable
+value,Ho_2021,Livson_2022,40,67,471,1.82e-8,2.73e-7,****,Chao1
+value,Ho_2021,Movassagh_2021,40,97,147.5,2e-17,3e-16,****,Chao1
+value,Ho_2021,PMTCT_CQI,40,75,252.5,2.18e-13,3.27e-12,****,Chao1
+value,Ho_2021,Servergnini_2021,40,63,740.5,3.91e-4,0.006,**,Chao1
+value,Kervinen_2022,Livson_2022,322,67,5834.5,2.62e-9,3.93e-8,****,Chao1
+value,Kervinen_2022,Movassagh_2021,322,97,2127.5,2.19e-38,3.28e-37,****,Chao1
+value,Kervinen_2022,PMTCT_CQI,322,75,3152.5,1.26e-23,1.89e-22,****,Chao1
+value,Livson_2022,Movassagh_2021,67,97,927,7.19e-15,1.08e-13,****,Chao1
+value,Livson_2022,PMTCT_CQI,67,75,1142,2e-8,3e-7,****,Chao1
+value,Livson_2022,Servergnini_2021,67,63,2899,2.14e-4,0.003,**,Chao1
+value,Movassagh_2021,Servergnini_2021,97,63,5648,1.18e-19,1.77e-18,****,Chao1
+value,PMTCT_CQI,Servergnini_2021,75,63,4027.5,9.46e-13,1.42e-11,****,Chao1
+value,Ho_2021,Movassagh_2021,40,97,418.5,5.98e-13,8.97e-12,****,Simpson Index
+value,Kervinen_2022,Movassagh_2021,322,97,1400.5,4.08e-42,6.12e-41,****,Simpson Index
+value,Kervinen_2022,PMTCT_CQI,322,75,6836,4.78e-9,7.17e-8,****,Simpson Index
+value,Livson_2022,Movassagh_2021,67,97,256.5,1.37e-23,2.0600000000000001e-22,****,Simpson Index
+value,Livson_2022,PMTCT_CQI,67,75,1635,3.38e-4,0.005,**,Simpson Index
+value,Movassagh_2021,PMTCT_CQI,97,75,5529.5,5.2e-9,7.8e-8,****,Simpson Index
+value,Movassagh_2021,Servergnini_2021,97,63,5861,1.17e-22,1.76e-21,****,Simpson Index
+value,PMTCT_CQI,Servergnini_2021,75,63,3258.5,1.29e-4,0.002,**,Simpson Index
+value,Ho_2021,Movassagh_2021,40,97,402,3.37e-13,5.06e-12,****,Shannon Entropy
+value,Kervinen_2022,Movassagh_2021,322,97,1423,5.52e-42,8.28e-41,****,Shannon Entropy
+value,Kervinen_2022,PMTCT_CQI,322,75,6576.5,8.04e-10,1.21e-8,****,Shannon Entropy
+value,Livson_2022,Movassagh_2021,67,97,308.5,7.83e-23,1.1700000000000001e-21,****,Shannon Entropy
+value,Livson_2022,PMTCT_CQI,67,75,1591,1.67e-4,0.003,**,Shannon Entropy
+value,Movassagh_2021,PMTCT_CQI,97,75,5398,5.49e-8,8.24e-7,****,Shannon Entropy
+value,Movassagh_2021,Servergnini_2021,97,63,5857,1.34e-22,2.01e-21,****,Shannon Entropy
+value,PMTCT_CQI,Servergnini_2021,75,63,3315.5,4.67e-5,7e-4,***,Shannon Entropy
+value,Ho_2021,Movassagh_2021,40,97,420,6.31e-13,9.46e-12,****,InvSimpson
+value,Kervinen_2022,Movassagh_2021,322,97,1397,3.9299999999999995e-42,5.9e-41,****,InvSimpson
+value,Kervinen_2022,PMTCT_CQI,322,75,6820.5,4.32e-9,6.48e-8,****,InvSimpson
+value,Livson_2022,Movassagh_2021,67,97,256,1.35e-23,2.02e-22,****,InvSimpson
+value,Livson_2022,PMTCT_CQI,67,75,1636,3.44e-4,0.005,**,InvSimpson
+value,Movassagh_2021,PMTCT_CQI,97,75,5534,4.78e-9,7.17e-8,****,InvSimpson
+value,Movassagh_2021,Servergnini_2021,97,63,5861,1.17e-22,1.76e-21,****,InvSimpson
+value,PMTCT_CQI,Servergnini_2021,75,63,3260,1.26e-4,0.002,**,InvSimpson
+value,Ho_2021,Kervinen_2022,40,322,8420.5,0.002,0.023,*,Pielou
+value,Ho_2021,Movassagh_2021,40,97,1120,1.05e-4,0.002,**,Pielou
+value,Kervinen_2022,Movassagh_2021,322,97,3086,4.2200000000000005e-33,6.329999999999999e-32,****,Pielou
+value,Kervinen_2022,PMTCT_CQI,322,75,8371.5,3.5e-5,5.25e-4,***,Pielou
+value,Livson_2022,Movassagh_2021,67,97,382,8.74e-22,1.31e-20,****,Pielou
+value,Movassagh_2021,PMTCT_CQI,97,75,5699,1.97e-10,2.96e-9,****,Pielou
+value,Movassagh_2021,Servergnini_2021,97,63,5445,7.22e-17,1.08e-15,****,Pielou

@@ -1,0 +1,65 @@
+.y.,group1,group2,n1,n2,statistic,p,p.adj,p.adj.signif,variable
+value,I,III,226,251,18412.5,2.97e-11,6.24e-10,****,Chao1
+value,I,IV-A,226,22,813,1.6e-7,3.36e-6,****,Chao1
+value,I,IV-B,226,55,2468.5,3.15e-12,6.62e-11,****,Chao1
+value,I,IV-C,226,46,1470.5,1.31e-14,2.75e-13,****,Chao1
+value,II,IV-A,27,22,106.5,1.24e-4,0.003,**,Chao1
+value,II,IV-B,27,55,317,2.51e-5,5.27e-4,***,Chao1
+value,II,IV-C,27,46,193,9.7e-7,2.04e-5,****,Chao1
+value,III,IV-C,251,46,3088,5.04e-7,1.06e-5,****,Chao1
+value,IV-A,V,22,37,630,4.55e-4,0.01,**,Chao1
+value,IV-B,V,55,37,1464,3.57e-4,0.007,**,Chao1
+value,IV-C,V,46,37,1383.5,1.02e-6,2.14e-5,****,Chao1
+value,I,III,226,251,17422.5,3.36e-13,7.06e-12,****,Simpson Index
+value,I,IV-A,226,22,327.5,1.81e-11,3.8e-10,****,Simpson Index
+value,I,IV-B,226,55,1438,9.6e-19,2.02e-17,****,Simpson Index
+value,I,IV-C,226,46,1368.5,3.4e-15,7.14e-14,****,Simpson Index
+value,I,V,226,37,1617.5,2.27e-9,4.77e-8,****,Simpson Index
+value,II,IV-A,27,22,47,5.29e-7,1.11e-5,****,Simpson Index
+value,II,IV-B,27,55,296,1.08e-5,2.27e-4,***,Simpson Index
+value,II,IV-C,27,46,196.5,1.27e-6,2.67e-5,****,Simpson Index
+value,III,IV-A,251,22,1312.5,4.54e-5,9.53e-4,***,Simpson Index
+value,III,IV-B,251,55,4537,6.9e-5,0.001,**,Simpson Index
+value,III,IV-C,251,46,3407.5,1e-5,2.1e-4,***,Simpson Index
+value,IV-A,V,22,37,671,1.48e-5,3.11e-4,***,Simpson Index
+value,IV-C,V,46,37,1291.5,5.55e-5,0.001,**,Simpson Index
+value,I,III,226,251,17362.5,2.5e-13,5.25e-12,****,Shannon Entropy
+value,I,IV-A,226,22,267,4.9e-12,1.03e-10,****,Shannon Entropy
+value,I,IV-B,226,55,1379,3.61e-19,7.58e-18,****,Shannon Entropy
+value,I,IV-C,226,46,1316,1.43e-15,3e-14,****,Shannon Entropy
+value,I,V,226,37,1690.5,6.38e-9,1.34e-7,****,Shannon Entropy
+value,II,IV-A,27,22,28,7.41e-10,1.56e-8,****,Shannon Entropy
+value,II,IV-B,27,55,256,1.62e-6,3.4e-5,****,Shannon Entropy
+value,II,IV-C,27,46,194,1.1e-6,2.31e-5,****,Shannon Entropy
+value,III,IV-A,251,22,1231.5,1.66e-5,3.49e-4,***,Shannon Entropy
+value,III,IV-B,251,55,4455.5,3.84e-5,8.06e-4,***,Shannon Entropy
+value,III,IV-C,251,46,3220.5,1.88e-6,3.95e-5,****,Shannon Entropy
+value,IV-A,V,22,37,717,1.23e-6,2.58e-5,****,Shannon Entropy
+value,IV-B,V,55,37,1455,5.02e-4,0.011,*,Shannon Entropy
+value,IV-C,V,46,37,1300,3.97e-5,8.34e-4,***,Shannon Entropy
+value,I,III,226,251,17411,3.18e-13,6.68e-12,****,InvSimpson
+value,I,IV-A,226,22,327,1.8e-11,3.78e-10,****,InvSimpson
+value,I,IV-B,226,55,1439,9.83e-19,2.06e-17,****,InvSimpson
+value,I,IV-C,226,46,1367,3.34e-15,7.01e-14,****,InvSimpson
+value,I,V,226,37,1616,2.23e-9,4.68e-8,****,InvSimpson
+value,II,IV-A,27,22,47,2.94e-8,6.17e-7,****,InvSimpson
+value,II,IV-B,27,55,296,1.08e-5,2.27e-4,***,InvSimpson
+value,II,IV-C,27,46,197,2.98e-7,6.26e-6,****,InvSimpson
+value,III,IV-A,251,22,1311,4.46e-5,9.37e-4,***,InvSimpson
+value,III,IV-B,251,55,4536,6.85e-5,0.001,**,InvSimpson
+value,III,IV-C,251,46,3410,1.02e-5,2.14e-4,***,InvSimpson
+value,IV-A,V,22,37,671,1.48e-5,3.11e-4,***,InvSimpson
+value,IV-C,V,46,37,1292,3.36e-5,7.06e-4,***,InvSimpson
+value,I,III,226,251,18054,6.95e-12,1.46e-10,****,Pielou
+value,I,IV-A,226,22,327,1.8e-11,3.78e-10,****,Pielou
+value,I,IV-B,226,55,1546,5.67e-18,1.19e-16,****,Pielou
+value,I,IV-C,226,46,1658,3.36e-13,7.06e-12,****,Pielou
+value,I,V,226,37,1480,3.03e-10,6.36e-9,****,Pielou
+value,II,IV-A,27,22,23,2.32e-10,4.87e-9,****,Pielou
+value,II,IV-B,27,55,293,9.41e-6,1.98e-4,***,Pielou
+value,II,IV-C,27,46,229,2.81e-6,5.9e-5,****,Pielou
+value,II,V,27,37,268,0.001,0.029,*,Pielou
+value,III,IV-A,251,22,1140,5.02e-6,1.05e-4,***,Pielou
+value,III,IV-B,251,55,4253,8.29e-6,1.74e-4,***,Pielou
+value,III,IV-C,251,46,3725,1.31e-4,0.003,**,Pielou
+value,IV-A,V,22,37,627,4.03e-4,0.008,**,Pielou
