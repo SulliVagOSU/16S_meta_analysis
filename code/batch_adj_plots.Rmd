@@ -1,0 +1,857 @@
+---
+title: "The cervicovaginal microbiome of pregnant people living with HIV on antiretroviral therapy in the Democratic Republic of Congo: A Pilot Study"
+author: "Kimberley S Ndlovu & Ricardo R Pavan"
+date: "2025-02-18"
+output:
+  html_document:
+    code_folding: show
+---
+
+Script with extras analysis for the paper: 
+
+"The cervicovaginal microbiome of pregnant people living with HIV on antiretroviral therapy in the Democratic Republic of Congo: A Pilot Study"
+
+```{r load libraries}
+if (!require(pacman)){
+    install.packages("pacman")
+}
+# load packages
+pacman::p_load(phyloseq, microbiome, mixOmics, vegan, cluster, sva, limma, tidyverse, PLSDAbatch, tidyHeatmap)
+
+```
+
+```{r}
+#load results
+main_dir <- "~/16S_meta_analysis"
+print(main_dir)
+data_folder = file.path(main_dir, "data")
+#source your functions
+source(file.path(main_dir, "/utils/functions_congo.R"))
+```
+
+# Meta-analysis: Batch adjustment
+```{r}
+load(file= file.path(data_folder, 'ps_filt_spp_clr_zero.RData')) # only CLR
+pseq <- ps_filt_spp_clr_zero
+```
+
+```{r}
+asv_df <- pseq %>% otu_tibble("id")
+meta <- pseq %>% sample_tibble("sample_id") %>% dplyr::select(sample_id, health_status,study,unsdg_region,Racioethnic_category, Age_Bin)
+tax_df <- pseq %>% tax_tibble("id")
+
+### prepare data ----
+# abundace df
+bac_clr_bat <- asv_df %>% column_to_rownames("id")
+meta_bat <- meta %>% 
+            column_to_rownames("sample_id") %>% 
+            mutate(across(where(is.character), as.factor))
+```
+
+The methods used in this analysis will be the following:
+
+Methods used:
+- removeBatchEffect (rBE - limma package) 
+- ComBat
+- PLSDA-batch
+- sPLSDA-batch
+- weighted PLSDA-batch (wPLSDA-batch)
+- wPLSDA-batch
+- weighted sPLSDA-batch (wsPLSDA-batch) 
+- batch-mean centering (BMC)
+
+```{r}
+##### removeBatchEffect (rBE) ----
+design <- model.matrix(~health_status + unsdg_region+Racioethnic_category+Age_Bin, data=meta_bat)
+treatment.design <- design[,1:2]
+batch.design <- design[,-(1:2)]
+batch_study <- as.factor(meta$study)
+bac_df.limma <- limma::removeBatchEffect(bac_clr_bat,design=treatment.design, covariates = batch.design)
+
+##### Combat ----
+batch_vag = factor(meta$study, 
+                    levels = unique(meta$study))
+names(batch_vag) <- meta$sample_id
+matrix.combat <- model.matrix(~1, data=meta_bat)
+bac_df.ComBat <- sva::ComBat(as.matrix(bac_clr_bat), batch=batch_vag, mod = matrix.combat)
+
+#### PLSDA-batch ----
+# estimate the number of treatment components
+# samples as rows
+Y.trt <- meta$health_status 
+bac_df.trt.tune <- mixOmics::plsda(X = t(bac_clr_bat), Y = batch_vag, ncomp = 20)
+# bac_df.trt.tune$prop_expl_var #4
+# sum(bac_df.trt.tune$prop_expl_var$Y[seq_len(5)])
+
+# run PLSDA batch
+bac_df.PLSDA_batch.res <- PLSDA_batch(X = t(bac_clr_bat), 
+                                    Y.trt = Y.trt, Y.bat = batch_vag,
+                                    ncomp.trt = 1, ncomp.bat = 5)
+
+# sum(bac_df.PLSDA_batch.res$explained_variance.bat$Y[seq_len(5)])
+bac_df.PLSDA_batch <- bac_df.PLSDA_batch.res$X.nobatch %>% t() %>% as.data.frame()
+
+#### sPLSDA-batch ----
+# estimate the number of variables to select per treatment component
+set.seed(777)
+bac.test.keepX = c(seq(1, 10, 1), seq(20, 100, 10))
+bac.trt.tune.v <- mixOmics::tune.splsda(X = t(bac_clr_bat), Y = Y.trt, 
+                                ncomp = 1, test.keepX = bac.test.keepX , 
+                                validation = 'Mfold', folds = 4, 
+                                nrepeat = 50)
+# bac.trt.tune.v$choice.keepX #30
+
+# estimate the number of batch components
+bac.batch.tune <- PLSDA_batch(X = t(bac_clr_bat), 
+                                Y.trt = Y.trt, Y.bat = batch_vag,
+                                ncomp.trt = 1, keepX.trt = 30,
+                                ncomp.bat = 10)
+# bac.batch.tune$explained_variance.bat 
+# sum(bac.batch.tune$explained_variance.bat$Y[seq_len(5)])
+
+bac.sPLSDA_batch.res <- PLSDA_batch(X = t(bac_clr_bat), 
+                                    Y.trt = Y.trt, Y.bat = batch_vag,
+                                    ncomp.trt = 1, keepX.trt = 30,
+                                    ncomp.bat = 5)
+
+bac_df.sPLSDA_batch <- bac.sPLSDA_batch.res$X.nobatch  %>% t() %>% as.data.frame()
+
+#### WPLSDA-batch ----
+bac_df.wPLSDA_batch.tune <- PLSDA_batch(X = t(bac_clr_bat), 
+                                    Y.trt = Y.trt, Y.bat = batch_vag,
+                                    ncomp.trt = 1, ncomp.bat = 20,
+                                    balance = FALSE)
+
+# sum(bac_df.wPLSDA_batch.tune$explained_variance.bat$Y[seq_len(6)])
+
+bac_df.wPLSDA_batch.res <- PLSDA_batch(X = t(bac_clr_bat), 
+                                    Y.trt = Y.trt, Y.bat = batch_vag,
+                                    ncomp.trt = 1, ncomp.bat = 6,
+                                    balance = FALSE)
+
+bac_df.wPLSDA_batch <- bac_df.wPLSDA_batch.res$X.nobatch %>% t() %>% as.data.frame()
+#### WsPLSDA-batch ----
+bac_df.wsPLSDA_batch <- PLSDA_batch(X = t(bac_clr_bat), 
+                                Y.trt = Y.trt, Y.bat = batch_vag,
+                                ncomp.trt = 1, keepX.trt = 30,
+                                ncomp.bat = 10,
+                                balance = FALSE)
+# bac_df.wsPLSDA_batch$explained_variance.bat 
+# sum(bac_df.wsPLSDA_batch$explained_variance.bat$Y[seq_len(6)])
+
+bac.wsPLSDA_batch.res <- PLSDA_batch(X = t(bac_clr_bat), 
+                                    Y.trt = Y.trt, Y.bat = batch_vag,
+                                    ncomp.trt = 1, keepX.trt = 30,
+                                    ncomp.bat = 6,
+                                    balance = FALSE)
+
+bac_df.wsPLSDA_batch <- bac.wsPLSDA_batch.res$X.nobatch  %>% t() %>% as.data.frame()
+
+
+#### batch-mean centering (BMC) ----
+# Define batches and an empty list to store scaled data
+batches <- unique(meta$study)
+scaled_data <- list()
+# Loop through each batch
+for (batch in batches) {
+    # Subset the data for the current batch and scale it
+    scaled_data[[batch]] <- scale(t(bac_clr_bat)[batch_vag == batch, ], center = TRUE, scale = FALSE)
+}
+# Combine scaled data into a single matrix
+bac_df.bmc <- do.call(rbind, scaled_data)
+# Reorder rows to match original data
+bac_df.bmc <- bac_df.bmc[rownames(t(bac_clr_bat)), ] %>% t() %>% as.data.frame() 
+```
+
+```{r}
+# save all the data
+list_batch_correction <- list(limma = bac_df.limma,
+                                combat = bac_df.ComBat,
+                                PLSDA_batch = bac_df.PLSDA_batch,
+                                sPLSDA_batch = bac_df.sPLSDA_batch,
+                                wPLSDA_batch = bac_df.wPLSDA_batch,
+                                wsPLSDA_batch = bac_df.wsPLSDA_batch,
+                                bmc = bac_df.bmc)
+
+process_df <- function(df) {
+    df %>%
+    as.data.frame() %>%
+    rownames_to_column("id") %>%
+    as_tibble()
+}
+
+list_batch_correction <- lapply(list_batch_correction, process_df)
+list_batch_correction <- c(list(before = asv_df), list_batch_correction)
+# save(list_batch_correction , file = paste0(data_folder, 'list_batch_correction.RData'))
+# load(file = paste0(data_folder, 'list_batch_correction.RData'))
+```
+
+```{r pca_batch, fig.width = 20, fig.height = 20}
+# ordination plot without adjustments
+# samples as rows
+# ASV
+meta <- pseq %>% sample_tibble("sample_id")
+
+color_study <- c("PMTCT_CQI" = "red","Mohamed_2020" = "blue",
+                "Movassagh_2021" = "green","Geldenhuys_2022" = "yellow",
+                "Chen_2019" = "purple","He_2019" = "orange",
+                "Li_2020" = "cyan","Lin_2020" = "magenta",
+                "Zhang_2022" = "brown","Liu_2022" = "pink",
+                "Kervinen_2022" = "#445002","Livson_2022" = "lavender",
+                "Hocevar_2019" = "maroon","Servergnini_2021" = "navy",
+                "Ho_2021" = "#AA9F0D","Dunlop_2021" = "coral")
+
+color_batch <- c("#FBBC0D", "#F5530D", "#FC006E", "#8035EB", "#2A81FA", "#16FBCD", "#6E475D", "#FA1CD7", "#AFF60D", "#97D5FB", 
+            "#426E00", "#FF82A7", "#E9A3FD", "#F6DEBF", "#8D4900", "#454592", "#006663", "#9F1681", "#1CFF82", "#D0D258", 
+            "#DD22FB", "#B3EDAF", "#FB26A5", "#F5B5D5", "#FB8E4F", "#A60D22", "#8D00A8", "#0DF6FB", "#A7C4BE", "#695626", 
+            "#0DB6FE", "#2AA50D", "#FFB09D", "#A293BE", "#A29BFA", "#8D324D", "#C09A49", "#0D9B6D", "#F5001C", "#FF7ADF", 
+            "#00769F", "#C66EFC", "#712679", "#2AFF00", "#F84F84", "#B48882", "#263BBA", "#38B3AE", "#B41670", "#A3AC69", 
+            "#A3F683", "#FBE000", "#D845D8", "#FF7169", "#6E796A", "#CD78BB", "#EBDDF3", "#D66D65", "#424B68", "#82AD2A")
+
+pca_community_study_after <- map2(list_batch_correction, names(list_batch_correction),
+                                                    ~Scatter_Density_batch(data = .x %>% 
+                                                                                    column_to_rownames("id") %>% 
+                                                                                    t() %>% 
+                                                                                    as.data.frame(),
+                                                                            data_meta = meta,
+                                                                            batch = "study", 
+                                                                            trt = "health_status", 
+                                                                            scale = F,
+                                                                            batch_color = color_study,
+                                                                            batch.legend.title = 'Study', 
+                                                                            trt.legend.title = 'Health Status', 
+                                                                            title = paste0("Bacterial Community Structure (Species - CLR) - ",.y)))
+
+(pca_community_study_after[[1]] | pca_community_study_after[[2]]) /
+(pca_community_study_after[[3]] | pca_community_study_after[[4]]) /
+(pca_community_study_after[[5]] | pca_community_study_after[[6]]) /
+(pca_community_study_after[[7]] | pca_community_study_after[[8]]) 
+```
+
+```{r heatmap, fig.width = 15, fig.height = 10}
+Health_Status = c("HIV" = "#2d7801", "Asymptomatic" =  "#8035EB")
+# Create a function to generate a heatmap for each element in the list
+create_heatmap <- function(data, element_name) {
+  data %>%
+    mutate(across(where(is.numeric), scale)) %>%
+    pivot_longer(-id, names_to = 'sample_id', values_to = "abundance") %>%
+    left_join(meta) %>%
+    left_join(tax_df) %>%
+    tidyHeatmap::heatmap(
+      .column = sample_id,
+      .row = id,
+      .value = abundance,
+      scale = "row",
+      palette_value = circlize::colorRamp2(c(-4, -1, 0, 1, 4), viridis::magma(5)),
+      column_names_gp = grid::gpar(fontsize = 7.5),
+      cluster_rows = FALSE,
+      show_heatmap_legend = TRUE
+    ) %>%
+    tidyHeatmap::add_tile(health_status, palette = Health_Status) %>%
+    tidyHeatmap::add_tile(study, palette = color_study) %>%
+    tidyHeatmap::wrap_heatmap() + 
+    ggplot2::ggtitle(element_name)
+}
+
+# Apply the function to each element in the list
+heatmaps <- mapply(
+  create_heatmap,
+  data = list_batch_correction,  # Your list of data frames
+  element_name = names(list_batch_correction),  # Names of the elements
+  SIMPLIFY = FALSE
+)
+
+heatmaps
+
+```
+
+```{r}
+# According to the results, PLSDA-batch was the best method to adjust for the batch effect
+otu_adj <- list_batch_correction$PLSDA_batch %>% column_to_rownames("id")
+OTU = otu_table(as.matrix(otu_adj), taxa_are_rows = TRUE)
+META = sample_data(pseq)
+ps_filt_spp_clr_zero_adj <- phyloseq(META, OTU, tax_table(tax_table(pseq)))
+# save(ps_filt_spp_clr_zero_adj, file= file.path(data_folder, 'ps_filt_spp_clr_zero_adj.RData'))
+# load(file= file.path(data_folder, 'ps_filt_spp_clr_zero_adj.RData')) 
+```
+
+# Beta-diversity analysis after batch adjustment
+```{r, }
+load(file= file.path(data_folder, 'ps_filt_spp_zero.RData')) 
+tax_levels <- c('id', "Kingdom","Phylum", "Class", "Order", "Family", "Genus")
+load(file= file.path(data_folder, 'ps_filt_spp_clr_zero_adj.RData'))
+
+# calculate the % Lacs and for all the Lcs and
+meta <- ps_filt_spp_zero %>% sample_tibble(column.id = "sample_id")
+tax_df <- ps_filt_spp_zero %>% tax_tibble("id")
+otu_df <- ps_filt_spp_zero %>% otu_tibble("id")
+ps_melted_rel <- ps_filt_spp_zero %>% microbiome::transform("compositional") %>% psmelt.dplyr() %>% rename(id = OTU)
+CST = read_delim(file.path(main_dir, "tables/metadata_final.tsv")) %>%
+          filter(sampleID %in% meta$sample_id) %>%
+          rename(sample_id = sampleID) %>%
+          select(sample_id, CST) %>%
+          mutate(CST = factor(CST, levels = c("I", "II", "III", "IV-A", "IV-B", "IV-C", "V"))) %>%
+          mutate(CST = fct_recode(CST, "IV" = "IV-A", "IV" = "IV-B", "IV" = "IV-C"))
+meta <- meta %>% left_join(CST, by = "sample_id")
+ps_melted_rel <- ps_melted_rel %>% left_join(CST, by = c("Sample" = "sample_id"))
+```
+
+```{r}
+taxon <- "id"
+# calculate the % Lacs and  for all the Lcs and 
+lac_iners <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                                filter(level == !!taxon) %>%
+                                group_by(Sample, taxon) %>%
+                                summarise(abundance = sum(abundance), .groups = "drop") %>%
+                filter(taxon == 'f__Lactobacillaceae_g__Lactobacillus_s__iners') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, abundance_iners = abundance)
+
+lac_crispatus <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                                filter(level == !!taxon) %>%
+                                group_by(Sample, taxon) %>%
+                                summarise(abundance = sum(abundance), .groups = "drop") %>%
+                filter(taxon == 'f__Lactobacillaceae_g__Lactobacillus_s__crispatus') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, abundance_crispatus = abundance)
+
+lach_UBA629 <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                                filter(level == !!taxon) %>%
+                                group_by(Sample, taxon) %>%
+                                summarise(abundance = sum(abundance), .groups = "drop") %>%
+                filter(taxon == 'f__Lachnospiraceae_g__UBA629_s__sp005465875') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, abundance_crispatus = abundance)
+
+bif_leopoldii <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                                filter(level == !!taxon) %>%
+                                group_by(Sample, taxon) %>%
+                                summarise(abundance = sum(abundance), .groups = "drop") %>%
+                filter(taxon == 'f__Bifidobacteriaceae_g__Bifidobacterium_388775_s__Bifidobacterium leopoldii') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, abundance_leopoldii = abundance) %>%
+                arrange(desc(abundance_leopoldii))
+
+bif_vaginale <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                                filter(level == !!taxon) %>%
+                                group_by(Sample, taxon) %>%
+                                summarise(abundance = sum(abundance), .groups = "drop") %>%
+                filter(taxon == 'f__Bifidobacteriaceae_g__Bifidobacterium_388775_s__Bifidobacterium vaginale') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, abundance_vaginale = abundance)
+
+fann_vag <- ps_melted_rel %>% 
+                select(Sample, abundance, contains(tax_levels)) %>%
+                filter(id == 'f__Atopobiaceae_g__Fannyhessea_s__vaginae') %>%
+                select(Sample, abundance) %>%
+                rename(sample_id = Sample, fann_vag = abundance) 
+
+# merge the data
+meta_bac_plot <- meta %>% 
+                    select(sample_id, study, health_status, CST, unsdg_region) %>%
+                    left_join(lac_iners, by = "sample_id") %>%
+                    left_join(lac_crispatus, by = "sample_id") %>%
+                    left_join(bif_leopoldii, by = "sample_id") %>%
+                    left_join(bif_vaginale, by = "sample_id") %>%
+                    left_join(fann_vag, by = "sample_id")
+
+```
+
+```{r var_explain, fig.width = 20, fig.height = 5}
+# set up dfs
+df <- ps_filt_spp_clr_zero_adj %>% otu_tibble("id") %>% column_to_rownames("id") %>% t()
+df_meta <- meta_bac_plot %>% mutate(across(where(is.character), as.factor))
+
+# fit PCA
+pca_fit <- df %>% 
+  prcomp(center = T, scale = FALSE) 
+# tidy the results
+var <- pca_fit %>% 
+  tidy(matrix = "eigenvalues")
+
+pcs_fit <- pca_fit %>% 
+  tidy(matrix = "pcs")
+
+perc_expl_var <- pcs_fit %>%
+  filter(PC < 6) %>%
+  ggplot(aes(x = PC, y = percent)) +
+  geom_bar(stat = "identity")
+
+pca_df_variances <- pca_fit %>%
+  augment() %>%
+  rename("sample_id" = 1) %>%
+  left_join(df_meta) %>%
+  rename_with(~str_replace(.,".fitted",""))
+
+spp_var <- pca_fit %>% tidy(matrix = "variables")
+top_spp_var <- spp_var %>%
+        filter(PC %in% c(1,2)) %>%
+        group_by(PC) %>%
+        top_n(6, abs(value)) %>%
+        ungroup() %>%
+        mutate(column = fct_reorder(column, desc(value))) %>% 
+        distinct(column) %>%
+        pull(column)
+
+pacman::p_load(tidytext)
+
+spp_var %>%
+        filter(PC %in% c(1,2)) %>%
+        mutate(PC = paste0("PC ", PC)) %>%
+        group_by(PC) %>%
+        top_n(10, abs(value)) %>%
+        mutate(column = tidytext::reorder_within(column, abs(value), PC)) %>%
+        ggplot(aes(value, column, fill = value > 0)) +
+        geom_col(show.legend = FALSE) +
+        facet_wrap(~PC, nrow = 1, scales = "free") +
+        scale_fill_manual(values = c("#ffa600", "#00ffea")) +
+        tidytext::scale_y_reordered() +
+        theme_minimal() +
+        theme(axis.text.y = element_text(size = 10),
+                axis.title.y = element_blank())
+```
+
+```{r}
+# get the order of samples by the PCA
+sample_order_pc1 <- pca_fit %>% 
+  tidy(matrix = "samples") %>% 
+  filter(PC == 1) %>% 
+  arrange(desc(value)) %>%
+  mutate(row = fct_reorder(row, value)) %>%
+  pull(row)
+
+sample_order_pc2 <- pca_fit %>% 
+  tidy(matrix = "samples") %>% 
+  filter(PC == 2) %>% 
+  arrange(value) %>%
+  mutate(row = fct_reorder(row,value)) %>%
+  pull(row)
+```
+
+
+```{r}
+# pseq.bac <- ps_filt_spp_zero
+# meta <- pseq.bac %>% sample_tibble(column.id = "sample_id")
+# tax_df <- pseq.bac %>% tax_tibble("id")
+# otu_df <- pseq.bac %>% otu_tibble("id")
+# ps_melted <- pseq.bac %>% psmelt.dplyr() %>% rename(id = OTU)
+# ps_melted_rel <- pseq.bac %>% microbiome::transform("compositional") %>% psmelt.dplyr() %>% rename(id = OTU)
+# meta <- meta %>% left_join(CST, by = "sample_id")
+# ps_melted <- ps_melted %>% left_join(CST, by = c("Sample" = "sample_id")) 
+# ps_melted_rel <- ps_melted_rel %>% left_join(CST, by = c("Sample" = "sample_id"))
+
+####---- Microbial Composition ----#####
+# number of reads
+total_reads_asv <- otu_df %>%
+                        as.data.table() %>%
+                        melt(id.vars = "id", value.name = "abundance", variable.name = "sample_id") %>%
+                        lazy_dt() %>%
+                        group_by(sample_id) %>%
+                        mutate(total_reads_sample = sum(abundance)) %>%
+                        group_by(id) %>%
+                        mutate(total_reads_asv = sum(abundance)) %>%
+                        group_by(id, sample_id) %>%
+                        mutate(total_reads_asv_sample = sum(abundance)) %>%
+                        ungroup() %>%
+                        collect()
+
+top_50_asv <- total_reads_asv %>% 
+                ungroup() %>%
+                distinct(id, .keep_all = T) %>%
+                arrange(id, desc(total_reads_asv)) %>%
+                slice_max(total_reads_asv, n = 50) %>%
+                left_join(tax_df, by ='id') %>%
+                select(-c(sample_id, abundance, total_reads_sample))
+
+top_50_asv %>% distinct(id)
+
+tax_levels <- c('id', "Kingdom","Phylum", "Class", "Order", "Family", "Genus")
+taxon <- "id"
+friendly_cols <- dittoSeq::dittoColors() # Use colourblind-friendly colours
+friendly_cols[1:13]
+
+Genus <- ps_melted_rel %>% 
+    rename(sample_id = Sample) %>%
+    group_by(sample_id, id) %>%
+    summarise(abundance = sum(abundance)) %>%
+    mutate(id = na_if(id, "")) %>%
+    group_by(id) %>%
+    summarise(mean = mean(abundance)) %>%
+    drop_na(id) %>%
+    arrange(desc(mean)) %>%
+    top_n(13, mean) %>% # change the top_n for a cleaner graph (it depends on each taxon)
+    bind_rows(., tibble(id = "Other", mean=0)) %>%
+    mutate(id = fct_reorder(id, mean))
+
+col_bac <- c("grey", "#E69F00","#56B4E9","#009E73","#F0E442","#0072B2","#D55E00","#CC79A7","red","#AD7700","#1C91D4","#007756","#D5C711","#005685")
+names(col_bac) <- rev(Genus$id)
+col_bac <- c(col_bac, "< 5 %" = "#bebebeda" )
+```
+
+```{r community_str, fig.width = 18, fig.height = 12}
+CST_col = c("I" = "#ffd900b9","II" = "#F5530D", "III" = "#16FBCD", "IV-A" = "navy", "IV-B" = "purple", "IV-C"="#426E00" ,"V"  = "#8D324D")
+genus_fct <- Genus$id
+# names(col_bac) <- rev(Genus$id)
+
+bar_plot <- ps_melted_rel %>% 
+    rename(sample_id = Sample) %>%
+  mutate(sample_id = factor(sample_id, levels = sample_order_pc1),
+          id=if_else(id %in% genus_fct, id, "Other"),
+          id = factor(id, levels = genus_fct)) %>% 
+  ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), y=abundance, fill=id)) +
+              geom_bar(stat="identity") +
+              # facet_grid(~study, scales="free_x", space = "free") +
+              coord_cartesian(expand = FALSE) +
+              xlab("Samples") +
+              ylab("Species abundance (%)") +
+              scale_fill_manual(values=col_bac) +
+              scale_y_continuous(labels = scales::percent) +
+              theme_minimal() +
+              # theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
+                theme(axis.title.x = element_blank(), 
+                      axis.title.y = element_text(size = rel(0.8)), 
+                      plot.title = element_text(hjust = 0.5, size = rel(1.5)), 
+                      axis.line = element_blank(), 
+                      axis.text = element_blank(), axis.ticks = element_blank(),
+                      panel.background = element_blank()) 
+
+pTop <- bar_plot + theme(legend.position="bottom") + guides(fill=guide_legend(nrow=5,ncol = 3, byrow=TRUE))
+
+pTop1 <- meta %>% 
+                ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), fill = CST)) +
+                    geom_bar() +
+                    scale_fill_manual(values = CST_col) +
+                theme_minimal()+ 
+                theme(axis.title.x = element_blank(), 
+                      axis.title.y = element_blank(), 
+                      plot.title = element_text(hjust = 0.5, size = rel(1.5)), 
+                      axis.line = element_blank(), 
+                      axis.text = element_blank(), axis.ticks = element_blank(),
+                      panel.background = element_blank(),
+                      legend.position="top") +
+                      guides(fill=guide_legend(nrow=1,ncol = 7, byrow=TRUE))
+
+ptop1 <-  ps_melted_rel %>% 
+              rename(sample_id = Sample) %>%
+                  left_join(lac_crispatus, by = "sample_id") %>%
+              ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), y=abundance_crispatus, color =abundance_crispatus )) +
+                        geom_point() +
+                        scale_color_gradient2(midpoint = max(lac_crispatus$abundance_crispatus)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(lac_crispatus$abundance_crispatus), max(lac_crispatus$abundance_crispatus))) +
+                        theme(axis.title.x = element_blank(), 
+                              axis.title.y = element_blank(), 
+                              axis.line = element_blank(),
+                              axis.text = element_blank(), 
+                              axis.ticks = element_blank(),
+                              panel.background = element_blank(),
+                              legend.position = "none") +
+                              ggtitle("Lactobacillus crispatus") 
+
+ptop2 <-  ps_melted_rel %>% 
+              rename(sample_id = Sample) %>%
+                  left_join(lac_iners, by = "sample_id") %>%
+              ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), y=abundance_iners, color =abundance_iners )) +
+                        geom_point() +
+                        scale_color_gradient2(midpoint = max(lac_iners$abundance_iners)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(lac_iners$abundance_iners), max(lac_iners$abundance_iners)),
+                                  name = "Relative Abundance (%)") +
+                        theme(axis.title.x = element_blank(), 
+                              axis.title.y = element_blank(), 
+                              axis.line = element_blank(),
+                              axis.text = element_blank(), 
+                              axis.ticks = element_blank(),
+                              panel.background = element_blank()) +
+                              ggtitle("Lactobacillus iners") 
+
+ptop3 <-  ps_melted_rel %>% 
+              rename(sample_id = Sample) %>%
+                  left_join(bif_leopoldii, by = "sample_id") %>%
+              ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), y=abundance_leopoldii, color =abundance_leopoldii )) +
+                        geom_point() +
+                        scale_color_gradient2(midpoint = max(bif_leopoldii$abundance_leopoldii)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(bif_leopoldii$abundance_leopoldii), max(bif_leopoldii$abundance_leopoldii))) +
+                        theme(axis.title.x = element_blank(), 
+                              axis.title.y = element_blank(), 
+                              axis.line = element_blank(),
+                              axis.text = element_blank(), 
+                              axis.ticks = element_blank(),
+                              panel.background = element_blank(),
+                              legend.position = "none") +
+                              ggtitle("Bifidobacterium leopoldii") 
+
+ptop4 <-  ps_melted_rel %>% 
+              rename(sample_id = Sample) %>%
+                  left_join(bif_vaginale, by = "sample_id") %>%
+              ggplot(aes(x=factor(sample_id, levels = rev(sample_order_pc1)), y=abundance_vaginale, color =abundance_vaginale )) +
+                        geom_point() +
+                        scale_color_gradient2(midpoint = max(bif_vaginale$abundance_vaginale)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(bif_vaginale$abundance_vaginale), max(bif_vaginale$abundance_vaginale))) +
+                        theme(axis.title.x = element_blank(), 
+                              axis.title.y = element_blank(), 
+                              axis.line = element_blank(),
+                              axis.text = element_blank(), 
+                              axis.ticks = element_blank(),
+                              panel.background = element_blank(),
+                              legend.position = "none") +
+                              ggtitle("Bifidobacterium vaginale")
+
+design = "
+AAA
+BBB
+CCC
+DDD
+EEE
+FFF
+"
+plot_all_bac_community <- pTop + pTop1 + ptop1 + ptop2 + ptop3 + ptop4 + 
+                            plot_layout(
+                              design = design, 
+                              axis_titles = "collect",
+                              heights = c(3, 1.5, 1,1, 1,1)) + 
+                              plot_annotation(
+                                title = 'Bacterial Community Composition',
+                                subtitle = 'The samples are ordered according to PC1 loadings'
+                              )
+
+plot_all_bac_community
+```
+
+
+```{r pca_plots, fig.width = 15, fig.height = 14}
+# make the plots
+spp_score <- spp_var %>%
+  pivot_wider(id_cols = column, names_from = "PC", values_from = "value", names_glue = "PC_{PC}") %>%
+  filter(column %in% top_spp_var)
+
+adj.txt <- 2.5
+arrow_style <- arrow(length = unit(.1, "inches"),
+                type = "closed")
+
+pMain <- pca_df_variances %>% 
+              ggplot(aes(PC1, PC2, color = health_status)) + 
+              geom_point(alpha = 0.9, size =3, aes(shape = study)) + 
+              #geom_text(check_overlap = TRUE, hjust = 'inward', family = 'IBM Plex Sans') +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              # scale_colour_viridis_d(option = "plasma") 
+              scale_color_manual(values = c("HIV" = "#DC3220", "Asymptomatic" = "#005AB5")) +
+              theme_bw() +
+              labs(colour = "Health Status",
+                    shape = "Study",
+                    title = "Bacterial community (CLR) - Batch adjusted")
+
+pca_crisp <- pca_df_variances %>% 
+              ggplot(aes(PC1, PC2, shape = study)) + 
+              geom_point(aes(color = abundance_crispatus), alpha = 0.9, size =3) + 
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              scale_color_gradient2(midpoint = max(lac_crispatus$abundance_crispatus)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(lac_crispatus$abundance_crispatus), max(lac_crispatus$abundance_crispatus)),
+                                  name = "Relative Abundance (%)") +
+              theme_bw() +
+              guides(shape = "none") +
+              labs(title = "Lactobacillus crispatus")
+
+
+pca_iners <-  pca_df_variances %>% 
+                ggplot(aes(PC1, PC2, shape = study)) + 
+                geom_point(aes(color = abundance_iners), alpha = 0.9, size =3) +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              # scale_colour_viridis_d(option = "plasma") 
+              scale_color_gradient2(midpoint = max(lac_iners$abundance_iners)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(lac_iners$abundance_iners), max(lac_iners$abundance_iners)),
+                                  name = "Relative Abundance (%)") +
+              theme_bw() +
+              theme(legend.position = "none") +
+              labs(title = "Lactobacillus iners")
+
+pca_leop <-  pca_df_variances %>% 
+                ggplot(aes(PC1, PC2, shape = study)) + 
+                geom_point(aes(color = abundance_leopoldii), alpha = 0.9, size =3) +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              # scale_colour_viridis_d(option = "plasma") 
+              scale_color_gradient2(midpoint = max(bif_leopoldii$abundance_leopoldii)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(bif_leopoldii$abundance_leopoldii), max(bif_leopoldii$abundance_leopoldii)),
+                                  name = "Relative Abundance (%)") +
+              theme_bw() +
+              theme(legend.position = "none") +
+              labs(title = "Bifidobacterium leopoldii")
+
+pca_vag <-  pca_df_variances %>% 
+                ggplot(aes(PC1, PC2, shape = study)) + 
+                geom_point(aes(color = abundance_vaginale), alpha = 0.9, size =3) +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              # scale_colour_viridis_d(option = "plasma") 
+              scale_color_gradient2(midpoint = max(bif_vaginale$abundance_vaginale)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(bif_vaginale$abundance_vaginale), max(bif_vaginale$abundance_vaginale)),
+                                  name = "Relative Abundance (%)") +
+              theme_bw() +
+              theme(legend.position = "none") +
+              labs(title = "Bifidobacterium vaginale")
+
+pca_fann_vag <- pca_df_variances %>% 
+                ggplot(aes(PC1, PC2, shape = study)) + 
+                geom_point(aes(color = fann_vag), alpha = 0.9, size =3) +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              # scale_colour_viridis_d(option = "plasma") 
+              scale_color_gradient2(midpoint = max(fann_vag$fann_vag)/2, low="#29AF7FFF", mid="#fde725c2",
+                                  high="#404788FF", 
+                                  limits = c(min(fann_vag$fann_vag), max(fann_vag$fann_vag)),
+                                  name = "Relative Abundance (%)") +
+              theme_bw() +
+              theme(legend.position = "none") +
+              labs(title = "Fannyhessea vaginae")
+
+
+unsdg_region_col <- c('SubSaharanAf' = '#fde725',
+                      'NorthAfWestAs' = "#D55E00",
+                      'EastSouEastAs' = '#440154',
+                      'CentSouthAs' = '#bc3754',
+                      'NorthAmEurope' = "#0071b2b2",
+                      'LatinAmCarib'= "#009E73")
+
+pca_region <- pca_df_variances %>%
+                ggplot(aes(PC1, PC2)) + 
+                geom_point(aes(color = unsdg_region, shape = study), size =3, alpha = 0.5) +
+              geom_hline(yintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_vline(xintercept=0, linetype="dashed", alpha = 0.3) +
+              geom_segment(data=spp_score, aes(x=0, y=0, xend=9*PC_1, yend=9*PC_2), arrow=arrow_style, alpha=0.75, color="blue") +
+              # geom_text(data=spp_score, aes(), size = 5, vjust=1, color="blue") +
+              ggrepel::geom_label_repel(data = spp_score,
+                        aes(x=10*PC_1, y=10*PC_2, label=column),
+                        size = 3, 
+                        # segment.size = 0.1,
+                        # nudge_x = 0, nudge_y = -0.1,
+                        color = 'black', fontface = 'bold',
+                        seed = 123, 
+                        max.overlaps = 30,
+                        direction = "both",
+                        box.padding = 0.5,
+                        # point.padding = unit(0.1, 'lines')
+                        ) +
+              labs(x = paste("PC1", round(var$percent[1]*100,2), "%"),
+                    y = paste("PC2", round(var$percent[2]*100,2), "%")) +
+              scale_colour_manual(values = unsdg_region_col,
+                                    name = "UNSDG Region") +
+              theme_bw()  +
+              guides(shape = "none") +
+              labs(title = "Region")
+
+design = "
+AAFF
+BBCC
+DDEE
+"
+plot_all_pca <- pMain + pca_crisp + pca_iners +  pca_leop + pca_vag + pca_region +
+                            plot_layout(
+                              design = design, 
+                              axis_titles = "collect",
+                              guides = 'collect') 
+
+plot_all_pca
+```
+
+#### Bar plot (composition)
+```{r barplot , fig.width = 15, fig.height = 10}
+variable_interest <- 'study'
+# function to plot a Bar plot
+plot_bar_plot <- function(df, variable_interest){
+  plot_bar = df %>% 
+      select(Sample, abundance, contains(tax_levels), all_of(variable_interest)) %>%
+      pivot_longer(c("id", "Kingdom","Phylum", "Class", "Order", "Family", "Genus"), names_to = "level", values_to = "taxon") %>%
+                      filter(level == !!taxon) %>%
+                      group_by(.data[[variable_interest]], Sample, taxon) %>%
+                      summarise(abundance = sum(abundance), .groups = "drop") %>%
+                      group_by(.data[[variable_interest]], taxon) %>%
+                      summarise(mean_abundance = mean(abundance), .groups = "drop") %>%
+                      mutate(taxon = case_when(mean_abundance < 0.05 ~ "< 5 %",
+                                              TRUE ~ as.character(taxon))) %>%
+                      mutate(taxon = fct_reorder(taxon, mean_abundance),
+                              !!variable_interest := fct_reorder(!!sym(variable_interest), mean_abundance)) %>%
+                      ggplot(aes(x = .data[[variable_interest]], y = mean_abundance, fill = taxon)) +
+                      geom_bar(stat = "identity") +
+                      scale_fill_manual(values = col_bac ) +
+                      scale_y_continuous(labels = scales::percent) +
+                      labs(y = glue::glue("Mean Relative Abundance"),
+                            x = variable_interest) + 
+                      theme_bw() +
+                      # scale_x_discrete(limits=c(samples.order)) +
+                      # Change the labels and Remove x axis title
+                      theme(#axis.text.x = element_text(angle = 45, hjust = 1),
+                            axis.ticks.x = element_blank(),
+                            # legend.position = "bottom",
+                            legend.box="vertical", 
+                            legend.margin=margin())
+  
+  return(plot_bar)
+}
+
+plot_bar_plot(ps_melted_rel, "study")
+plot_bar_plot(ps_melted_rel, "CST")
+
+```
+
+```{r upset, fig.width = 15, fig.height = 10}
+####--- Overlap of Species between Studies (Upset plot) ----####
+pacman::p_load(UpSetR)
+uplot<-
+  otu_df %>%
+  pivot_longer(-id, names_to = "sample_id") %>%
+  mutate(value=if_else(value==0, 0, 1)) %>%
+  left_join(meta[,c("sample_id","study")]) %>%
+  select(-sample_id) %>%
+  group_by(study, id) %>%
+  summarize(value=max(value)) %>% 
+  pivot_wider(names_from = "study", values_from = "value", values_fill = 0) %>%
+  as.data.frame()
+
+uplot %>%  
+  upset(., order.by="freq", nsets = 6, mainbar.y.label = "Species Overlap", sets.x.label = "Species Per Study") 
+```
+# Differentially abundant species by health status
+
+### Upset plot
+```{r Upset DAA, fig.width = 15, fig.height = 10}
+pacman::p_load(ComplexUpset)
+#load results
+all_methods = read_csv(file.path(main_dir, "tables/DAA/all_methods.csv"))
+
+upset(all_methods %>% dplyr::select(LinDA, ancombc, aldex2), 
+                all_methods %>% dplyr::select(LinDA, ancombc, aldex2) %>% colnames(),
+                name ='Species', width_ratio=0.1)
+```
+
