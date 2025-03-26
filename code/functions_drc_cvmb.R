@@ -1,8 +1,6 @@
 #MODIFIED BY: KSNdlovu
-#DATE LASTMODIFIED: March 12, 2025
+#DATE LASTMODIFIED: March 26, 2025
 #ORIGINAL AUTHOR: RRPavan
-
-colours <- readRDS("~/Library/CloudStorage/OneDrive-TheOhioStateUniversity/Possible thesis projects/HIV project/Vaginal study w Ann&Ricardo/16S_data_vaginal_DNA/Attempt_2/scripts/colours.RDS")
 
 ########DATA PROCESSING######
 #assign level 1,2,4 pathways to a picrust 2 output
