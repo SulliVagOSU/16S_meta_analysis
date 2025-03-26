@@ -1,0 +1,79 @@
+KO,LinDA,ancombc,aldex2,score,variable_linda,variable_ancombc,variable_aldex2,pathway_3,pathway_1,pathway_2,pathway_3_clean
+KO_28,TRUE,FALSE,TRUE,2,study,NA,health_status and study,Metabolism_Amino Acid Metabolism_Tyrosine Metabolism,Metabolism,Amino Acid Metabolism,Tyrosine Metabolism
+KO_76,TRUE,FALSE,FALSE,1,study,NA,NA,Unclassified_Genetic Information Processing_Transcription Related Proteins,Unclassified,Genetic Information Processing,Transcription Related Proteins
+KO_56,TRUE,TRUE,TRUE,3,study,study,health_status and study,Metabolism_Metabolism Of Cofactors And Vitamins_Pantothenate And Coa Biosynthesis,Metabolism,Metabolism Of Cofactors And Vitamins,Pantothenate And Coa Biosynthesis
+KO_9,TRUE,TRUE,TRUE,3,study,study,health_status and study,Environmental Information Processing_Membrane Transport_Transporters,Environmental Information Processing,Membrane Transport,Transporters
+KO_74,TRUE,TRUE,TRUE,3,study,study,health_status and study,Organismal Systems_Environmental Adaptation_Circadian Rhythm - Plant,Organismal Systems,Environmental Adaptation,Circadian Rhythm - Plant
+KO_22,TRUE,FALSE,TRUE,2,study,NA,health_status and study,Metabolism_Amino Acid Metabolism_Cysteine And Methionine Metabolism,Metabolism,Amino Acid Metabolism,Cysteine And Methionine Metabolism
+KO_15,TRUE,FALSE,TRUE,2,study,NA,health_status and study,Environmental Information Processing_Signaling Molecules And Interaction_Neuroactive Ligand-Receptor Interaction,Environmental Information Processing,Signaling Molecules And Interaction,Neuroactive Ligand-Receptor Interaction
+KO_48,TRUE,TRUE,TRUE,3,study,study,health_status and study,Metabolism_Glycan Biosynthesis And Metabolism_Glycosyltransferases,Metabolism,Glycan Biosynthesis And Metabolism,Glycosyltransferases
+KO_49,TRUE,TRUE,TRUE,3,study,study,study,Metabolism_Glycan Biosynthesis And Metabolism_Mucin Type O-Glycan Biosynthesis,Metabolism,Glycan Biosynthesis And Metabolism,Mucin Type O-Glycan Biosynthesis
+KO_13,TRUE,FALSE,FALSE,1,study,NA,NA,Environmental Information Processing_Signal Transduction_Wnt Signaling Pathway,Environmental Information Processing,Signal Transduction,Wnt Signaling Pathway
+KO_2,TRUE,TRUE,TRUE,3,study,study,health_status and study,Brite Hierarchies_Metabolism_Protein Kinases,Brite Hierarchies,Metabolism,Protein Kinases
+KO_38,TRUE,TRUE,FALSE,2,study,study,NA,Metabolism_Carbohydrate Metabolism_Pentose Phosphate Pathway,Metabolism,Carbohydrate Metabolism,Pentose Phosphate Pathway
+KO_72,TRUE,TRUE,TRUE,3,study,study,health_status and study,Organismal Systems_Digestive System_Mineral Absorption,Organismal Systems,Digestive System,Mineral Absorption
+KO_40,TRUE,TRUE,FALSE,2,study,study,NA,Metabolism_Carbohydrate Metabolism_Starch And Sucrose Metabolism,Metabolism,Carbohydrate Metabolism,Starch And Sucrose Metabolism
+KO_43,TRUE,TRUE,FALSE,2,study,study,NA,Metabolism_Energy Metabolism_Methane Metabolism,Metabolism,Energy Metabolism,Methane Metabolism
+KO_20,TRUE,FALSE,FALSE,1,study,NA,NA,Metabolism_Amino Acid Metabolism_Amino Acid Related Enzymes,Metabolism,Amino Acid Metabolism,Amino Acid Related Enzymes
+KO_46,TRUE,TRUE,FALSE,2,study,study,NA,Metabolism_Energy Metabolism_Sulfur Metabolism,Metabolism,Energy Metabolism,Sulfur Metabolism
+KO_73,TRUE,TRUE,TRUE,3,study,study,study,"Organismal Systems_Endocrine System_Parathyroid Hormone Synthesis, Secretion And Action",Organismal Systems,Endocrine System,"Parathyroid Hormone Synthesis, Secretion And Action"
+KO_8,TRUE,FALSE,FALSE,1,study,NA,NA,Environmental Information Processing_Membrane Transport_Secretion System,Environmental Information Processing,Membrane Transport,Secretion System
+KO_68,TRUE,TRUE,TRUE,3,study,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Polycyclic Aromatic Hydrocarbon Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Polycyclic Aromatic Hydrocarbon Degradation
+KO_4,TRUE,TRUE,FALSE,2,study,study,NA,Brite Hierarchies_Signaling And Cellular Processes_G Protein-Coupled Receptors,Brite Hierarchies,Signaling And Cellular Processes,G Protein-Coupled Receptors
+KO_51,TRUE,TRUE,TRUE,3,study,study,health_status and study,Metabolism_Lipid Metabolism_Fatty Acid Metabolism,Metabolism,Lipid Metabolism,Fatty Acid Metabolism
+KO_39,TRUE,TRUE,FALSE,2,study,health_status,NA,Metabolism_Carbohydrate Metabolism_Propanoate Metabolism,Metabolism,Carbohydrate Metabolism,Propanoate Metabolism
+KO_45,TRUE,FALSE,TRUE,2,study,NA,health_status and study,Metabolism_Energy Metabolism_Oxidative Phosphorylation,Metabolism,Energy Metabolism,Oxidative Phosphorylation
+KO_11,TRUE,FALSE,FALSE,1,study,NA,NA,Environmental Information Processing_Signal Transduction_Hedgehog Signaling Pathway,Environmental Information Processing,Signal Transduction,Hedgehog Signaling Pathway
+KO_10,TRUE,FALSE,FALSE,1,study,NA,NA,Environmental Information Processing_Signal Transduction_Calcium Signaling Pathway,Environmental Information Processing,Signal Transduction,Calcium Signaling Pathway
+KO_64,TRUE,TRUE,FALSE,2,study,study,NA,Metabolism_Xenobiotics Biodegradation And Metabolism_Chloroalkane And Chloroalkene Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Chloroalkane And Chloroalkene Degradation
+KO_37,TRUE,FALSE,FALSE,1,study,NA,NA,Metabolism_Carbohydrate Metabolism_Pentose And Glucuronate Interconversions,Metabolism,Carbohydrate Metabolism,Pentose And Glucuronate Interconversions
+KO_24,TRUE,TRUE,FALSE,2,study,health_status,NA,Metabolism_Amino Acid Metabolism_Lysine Biosynthesis,Metabolism,Amino Acid Metabolism,Lysine Biosynthesis
+KO_33,TRUE,FALSE,TRUE,2,study,NA,health_status and study,Metabolism_Carbohydrate Metabolism_Butanoate Metabolism,Metabolism,Carbohydrate Metabolism,Butanoate Metabolism
+KO_14,TRUE,TRUE,TRUE,3,study,study,health_status and study,Environmental Information Processing_Signaling Molecules And Interaction_Cytokine-Cytokine Receptor Interaction,Environmental Information Processing,Signaling Molecules And Interaction,Cytokine-Cytokine Receptor Interaction
+KO_53,TRUE,FALSE,FALSE,1,study,NA,NA,Metabolism_Lipid Metabolism_Steroid Biosynthesis,Metabolism,Lipid Metabolism,Steroid Biosynthesis
+KO_30,TRUE,TRUE,TRUE,3,study,study,health_status,"Metabolism_Amino Acid Metabolism_Valine, Leucine And Isoleucine Degradation",Metabolism,Amino Acid Metabolism,"Valine, Leucine And Isoleucine Degradation"
+KO_23,TRUE,TRUE,FALSE,2,study,study,NA,"Metabolism_Amino Acid Metabolism_Glycine, Serine And Threonine Metabolism",Metabolism,Amino Acid Metabolism,"Glycine, Serine And Threonine Metabolism"
+KO_70,TRUE,TRUE,TRUE,3,study,health_status and study,study,Organismal Systems_Development And Regeneration_Axon Guidance,Organismal Systems,Development And Regeneration,Axon Guidance
+KO_54,TRUE,FALSE,FALSE,1,study,NA,NA,Metabolism_Lipid Metabolism_Steroid Hormone Biosynthesis,Metabolism,Lipid Metabolism,Steroid Hormone Biosynthesis
+KO_32,TRUE,TRUE,TRUE,3,study,study,health_status and study,Metabolism_Carbohydrate Metabolism_Amino Sugar And Nucleotide Sugar Metabolism,Metabolism,Carbohydrate Metabolism,Amino Sugar And Nucleotide Sugar Metabolism
+KO_27,TRUE,FALSE,TRUE,2,study,NA,study,Metabolism_Amino Acid Metabolism_Tryptophan Metabolism,Metabolism,Amino Acid Metabolism,Tryptophan Metabolism
+KO_75,TRUE,FALSE,FALSE,1,study,NA,NA,Unclassified_Cellular Processes And Signaling_Signal Transduction Mechanisms,Unclassified,Cellular Processes And Signaling,Signal Transduction Mechanisms
+KO_55,TRUE,TRUE,TRUE,3,study,health_status,study,Metabolism_Metabolism Of Cofactors And Vitamins_Folate Biosynthesis,Metabolism,Metabolism Of Cofactors And Vitamins,Folate Biosynthesis
+KO_31,TRUE,TRUE,TRUE,3,study,health_status,study,Metabolism_Biosynthesis Of Other Secondary Metabolites_Phenylpropanoid Biosynthesis,Metabolism,Biosynthesis Of Other Secondary Metabolites,Phenylpropanoid Biosynthesis
+KO_3,TRUE,FALSE,FALSE,1,study,NA,NA,Brite Hierarchies_Metabolism_Protein Phosphatases And Associated Proteins,Brite Hierarchies,Metabolism,Protein Phosphatases And Associated Proteins
+KO_59,TRUE,FALSE,TRUE,2,study,NA,study,Metabolism_Metabolism Of Other Amino Acids_Glutathione Metabolism,Metabolism,Metabolism Of Other Amino Acids,Glutathione Metabolism
+KO_1,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Brite Hierarchies_Genetic Information Processing_Membrane Trafficking,Brite Hierarchies,Genetic Information Processing,Membrane Trafficking
+KO_5,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Brite Hierarchies_Signaling And Cellular Processes_Ion Channels,Brite Hierarchies,Signaling And Cellular Processes,Ion Channels
+KO_6,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Cellular Processes_Cell Motility_Bacterial Motility Proteins,Cellular Processes,Cell Motility,Bacterial Motility Proteins
+KO_7,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Environmental Information Processing_Membrane Transport_Abc Transporters,Environmental Information Processing,Membrane Transport,Abc Transporters
+KO_16,FALSE,TRUE,TRUE,2,NA,study,health_status and study,"Genetic Information Processing_Folding, Sorting And Degradation_Proteasome",Genetic Information Processing,"Folding, Sorting And Degradation",Proteasome
+KO_17,FALSE,TRUE,TRUE,2,NA,study,health_status and study,"Genetic Information Processing_Folding, Sorting And Degradation_Rna Degradation",Genetic Information Processing,"Folding, Sorting And Degradation",Rna Degradation
+KO_18,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Genetic Information Processing_Transcription_Rna Polymerase,Genetic Information Processing,Transcription,Rna Polymerase
+KO_19,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Genetic Information Processing_Translation_Ribosome Biogenesis,Genetic Information Processing,Translation,Ribosome Biogenesis
+KO_25,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Amino Acid Metabolism_Lysine Degradation,Metabolism,Amino Acid Metabolism,Lysine Degradation
+KO_26,FALSE,TRUE,TRUE,2,NA,study,health_status and study,"Metabolism_Amino Acid Metabolism_Phenylalanine, Tyrosine And Tryptophan Biosynthesis",Metabolism,Amino Acid Metabolism,"Phenylalanine, Tyrosine And Tryptophan Biosynthesis"
+KO_29,FALSE,TRUE,TRUE,2,NA,study,health_status and study,"Metabolism_Amino Acid Metabolism_Valine, Leucine And Isoleucine Biosynthesis",Metabolism,Amino Acid Metabolism,"Valine, Leucine And Isoleucine Biosynthesis"
+KO_34,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Carbohydrate Metabolism_Citrate Cycle (Tca Cycle),Metabolism,Carbohydrate Metabolism,Citrate Cycle (Tca Cycle)
+KO_35,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Carbohydrate Metabolism_Fructose And Mannose Metabolism,Metabolism,Carbohydrate Metabolism,Fructose And Mannose Metabolism
+KO_36,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Carbohydrate Metabolism_Inositol Phosphate Metabolism,Metabolism,Carbohydrate Metabolism,Inositol Phosphate Metabolism
+KO_41,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Energy Metabolism_Carbon Fixation In Photosynthetic Organisms,Metabolism,Energy Metabolism,Carbon Fixation In Photosynthetic Organisms
+KO_42,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Energy Metabolism_Carbon Fixation Pathways In Prokaryotes,Metabolism,Energy Metabolism,Carbon Fixation Pathways In Prokaryotes
+KO_47,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Enzyme Families_Protein Kinases,Metabolism,Enzyme Families,Protein Kinases
+KO_50,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Glycan Biosynthesis And Metabolism_N-Glycan Biosynthesis,Metabolism,Glycan Biosynthesis And Metabolism,N-Glycan Biosynthesis
+KO_52,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Lipid Metabolism_Glycerophospholipid Metabolism,Metabolism,Lipid Metabolism,Glycerophospholipid Metabolism
+KO_57,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Metabolism Of Cofactors And Vitamins_Porphyrin And Chlorophyll Metabolism,Metabolism,Metabolism Of Cofactors And Vitamins,Porphyrin And Chlorophyll Metabolism
+KO_60,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Metabolism Of Other Amino Acids_Phosphonate And Phosphinate Metabolism,Metabolism,Metabolism Of Other Amino Acids,Phosphonate And Phosphinate Metabolism
+KO_61,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Metabolism Of Terpenoids And Polyketides_Diterpenoid Biosynthesis,Metabolism,Metabolism Of Terpenoids And Polyketides,Diterpenoid Biosynthesis
+KO_62,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Nucleotide Metabolism_Pyrimidine Metabolism,Metabolism,Nucleotide Metabolism,Pyrimidine Metabolism
+KO_63,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Benzoate Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Benzoate Degradation
+KO_65,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Dioxin Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Dioxin Degradation
+KO_66,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Drug Metabolism - Other Enzymes,Metabolism,Xenobiotics Biodegradation And Metabolism,Drug Metabolism - Other Enzymes
+KO_67,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Ethylbenzene Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Ethylbenzene Degradation
+KO_69,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Metabolism_Xenobiotics Biodegradation And Metabolism_Toluene Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Toluene Degradation
+KO_71,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Organismal Systems_Digestive System_Carbohydrate Digestion And Absorption,Organismal Systems,Digestive System,Carbohydrate Digestion And Absorption
+KO_78,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Unclassified_Metabolism_Energy Metabolism,Unclassified,Metabolism,Energy Metabolism
+KO_79,FALSE,TRUE,TRUE,2,NA,study,health_status and study,Unclassified_Metabolism_Unclassified,Unclassified,Metabolism,Unclassified
+KO_21,FALSE,FALSE,TRUE,1,NA,NA,health_status and study,Metabolism_Amino Acid Metabolism_Arginine And Proline Metabolism,Metabolism,Amino Acid Metabolism,Arginine And Proline Metabolism
+KO_44,FALSE,FALSE,TRUE,1,NA,NA,health_status and study,Metabolism_Energy Metabolism_Nitrogen Metabolism,Metabolism,Energy Metabolism,Nitrogen Metabolism
+KO_77,FALSE,FALSE,TRUE,1,NA,NA,health_status and study,Unclassified_Genetic Information Processing_Translation Proteins,Unclassified,Genetic Information Processing,Translation Proteins
+KO_80,FALSE,FALSE,TRUE,1,NA,NA,health_status and study,Unclassified_Unclassified_Unclassified,Unclassified,Unclassified,Unclassified

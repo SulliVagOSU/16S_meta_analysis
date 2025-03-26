@@ -1,0 +1,26 @@
+KO,LinDA,ancombc,aldex2,score,pathway_3,pathway_1,pathway_2,pathway_3_clean
+KO_3,FALSE,TRUE,TRUE,2,Brite Hierarchies_Signaling And Cellular Processes_G Protein-Coupled Receptors,Brite Hierarchies,Signaling And Cellular Processes,G Protein-Coupled Receptors
+KO_10,FALSE,TRUE,FALSE,1,Environmental Information Processing_Membrane Transport_Transporters,Environmental Information Processing,Membrane Transport,Transporters
+KO_11,FALSE,TRUE,FALSE,1,Environmental Information Processing_Signal Transduction_Calcium Signaling Pathway,Environmental Information Processing,Signal Transduction,Calcium Signaling Pathway
+KO_25,FALSE,TRUE,FALSE,1,"Metabolism_Amino Acid Metabolism_Glycine, Serine And Threonine Metabolism",Metabolism,Amino Acid Metabolism,"Glycine, Serine And Threonine Metabolism"
+KO_35,FALSE,TRUE,TRUE,2,Metabolism_Carbohydrate Metabolism_Amino Sugar And Nucleotide Sugar Metabolism,Metabolism,Carbohydrate Metabolism,Amino Sugar And Nucleotide Sugar Metabolism
+KO_36,FALSE,TRUE,FALSE,1,Metabolism_Carbohydrate Metabolism_Butanoate Metabolism,Metabolism,Carbohydrate Metabolism,Butanoate Metabolism
+KO_55,FALSE,TRUE,TRUE,2,Metabolism_Lipid Metabolism_Fatty Acid Metabolism,Metabolism,Lipid Metabolism,Fatty Acid Metabolism
+KO_73,FALSE,TRUE,FALSE,1,Metabolism_Xenobiotics Biodegradation And Metabolism_Chloroalkane And Chloroalkene Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Chloroalkane And Chloroalkene Degradation
+KO_78,FALSE,TRUE,TRUE,2,Metabolism_Xenobiotics Biodegradation And Metabolism_Polycyclic Aromatic Hydrocarbon Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Polycyclic Aromatic Hydrocarbon Degradation
+KO_82,FALSE,TRUE,FALSE,1,Organismal Systems_Digestive System_Mineral Absorption,Organismal Systems,Digestive System,Mineral Absorption
+KO_83,FALSE,TRUE,FALSE,1,"Organismal Systems_Endocrine System_Parathyroid Hormone Synthesis, Secretion And Action",Organismal Systems,Endocrine System,"Parathyroid Hormone Synthesis, Secretion And Action"
+KO_84,FALSE,TRUE,FALSE,1,Organismal Systems_Environmental Adaptation_Circadian Rhythm - Plant,Organismal Systems,Environmental Adaptation,Circadian Rhythm - Plant
+KO_4,FALSE,FALSE,TRUE,1,Brite Hierarchies_Signaling And Cellular Processes_Ion Channels,Brite Hierarchies,Signaling And Cellular Processes,Ion Channels
+KO_5,FALSE,FALSE,TRUE,1,Cellular Processes_Cell Motility_Bacterial Motility Proteins,Cellular Processes,Cell Motility,Bacterial Motility Proteins
+KO_14,FALSE,FALSE,TRUE,1,Environmental Information Processing_Signal Transduction_Wnt Signaling Pathway,Environmental Information Processing,Signal Transduction,Wnt Signaling Pathway
+KO_20,FALSE,FALSE,TRUE,1,Genetic Information Processing_Transcription_Rna Polymerase,Genetic Information Processing,Transcription,Rna Polymerase
+KO_21,FALSE,FALSE,TRUE,1,Genetic Information Processing_Translation_Ribosome Biogenesis,Genetic Information Processing,Translation,Ribosome Biogenesis
+KO_27,FALSE,FALSE,TRUE,1,Metabolism_Amino Acid Metabolism_Lysine Degradation,Metabolism,Amino Acid Metabolism,Lysine Degradation
+KO_37,FALSE,FALSE,TRUE,1,Metabolism_Carbohydrate Metabolism_Citrate Cycle (Tca Cycle),Metabolism,Carbohydrate Metabolism,Citrate Cycle (Tca Cycle)
+KO_44,FALSE,FALSE,TRUE,1,Metabolism_Energy Metabolism_Carbon Fixation In Photosynthetic Organisms,Metabolism,Energy Metabolism,Carbon Fixation In Photosynthetic Organisms
+KO_65,FALSE,FALSE,TRUE,1,Metabolism_Metabolism Of Other Amino Acids_Cyanoamino Acid Metabolism,Metabolism,Metabolism Of Other Amino Acids,Cyanoamino Acid Metabolism
+KO_68,FALSE,FALSE,TRUE,1,Metabolism_Metabolism Of Terpenoids And Polyketides_Diterpenoid Biosynthesis,Metabolism,Metabolism Of Terpenoids And Polyketides,Diterpenoid Biosynthesis
+KO_74,FALSE,FALSE,TRUE,1,Metabolism_Xenobiotics Biodegradation And Metabolism_Dioxin Degradation,Metabolism,Xenobiotics Biodegradation And Metabolism,Dioxin Degradation
+KO_75,FALSE,FALSE,TRUE,1,Metabolism_Xenobiotics Biodegradation And Metabolism_Drug Metabolism - Other Enzymes,Metabolism,Xenobiotics Biodegradation And Metabolism,Drug Metabolism - Other Enzymes
+KO_81,FALSE,FALSE,TRUE,1,Organismal Systems_Digestive System_Carbohydrate Digestion And Absorption,Organismal Systems,Digestive System,Carbohydrate Digestion And Absorption
