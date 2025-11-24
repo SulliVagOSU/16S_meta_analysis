@@ -21,8 +21,8 @@ ps_meta_picrust is a phyloseq of predicted metabolic pathways for integrated dat
 ps_raw_all is a phyloseq of raw count data for the integrated datasets<br/> 
 ### CODE folder
 DRC_CVMB_Figures2.Rmd contains all scripts used to make the figures in the paper. Also includes analyses used to make the inputfiles for the figures<br/> 
-functions_drc_cvmb.R functions used in the DRC_CVMB_Figures2.Rmd<br/> 
+functions_drc_cvmb.R functions used in the DRC_CVMB_Figures_03.Rmd<br/> 
 dada2_congo_samples.R contains dada2 analyses for the CQI-PMTCT (CONGO) samples<br/> 
 batch_adj_plots.Rmd contains batch adjustment scripts and figures for the integrated datasets<br/> 
 ### TABLES folder
-contains all the input files for the code/DRC_CVMB_Figures2.Rmd. Scripts to obtian the files are included in the same Rmd file.
+contains all the input files for the code/DRC_CVMB_Figures_03.Rmd. Scripts to obtian the files are included in the same Rmd file.
