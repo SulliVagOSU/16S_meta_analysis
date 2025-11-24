@@ -2,6 +2,7 @@
 Code accompanying the manuscript "The vaginal microbiome of pregnant people living with HIV on antiretroviral therapy in the Democratic Republic of Congo: A Pilot Study and Global Meta-analysis" ![image](https://github.com/user-attachments/assets/7dff1da4-b098-4e02-984d-4ab79a6260ac)
 
 
+![E6A41D75-90F8-4465-A0C5-B6B230D305ED_1_201_a](https://github.com/user-attachments/assets/193ae94b-0884-4dba-9ab0-f0d2120798c4)
 
 ## Contributors
 Kimberley S Ndlovu<br/> 
