@@ -18,7 +18,7 @@ knitr::opts_knit$set(root.dir = "~/Desktop/drc_cvmb_paper")
 knitr::opts_chunk$set(warning = FALSE)
 ```
 
-```{r load libraries, echo=FALSE}
+```{r load libraries, echo=TRUE}
 if (!require(pacman)){
     install.packages("pacman")
 }
@@ -47,7 +47,7 @@ pacman::p_load(
   rstatix,
   ggpubr, 
   dtplyr, 
-  veganEx, ggh4x,
+  veganEx, ggh4x, corrplot,
   install = F
 )
 
@@ -59,7 +59,7 @@ source("functions_drc_cvmb.R")
 # Figure 1
 ## B. Heatmap of RCLR abundances in the CQI-PMTCT cohort
 
-```{r, echo=FALSE, fig.width=11, fig.height=7}
+```{r, echo=TRUE, fig.width=11, fig.height=7}
 ps_congo_filt_spp_rclr <- readRDS("data/ps_congo_filt_spp_rclr.rds")
 #change CST column in metadata table
 meta_congo <- sample.data.frame(ps_congo_filt_spp_rclr)
@@ -140,7 +140,7 @@ Heatmap(abundance_plot_mat,
 # Figure 2: Ecological statistics of the CVMB in the CQI-PMTCT cohort.
 ## A.CQI-PMTCT cohort:Shannon diversity by CST
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #load phyloseq object and extract otu_table
 ps_congo_filt_spp <- readRDS("data/ps_congo_filt_spp.rds")
 otu <- otu_table(ps_congo_filt_spp) %>% as.data.frame() %>% t()
@@ -182,7 +182,7 @@ ggplot(shannon %>% filter(!is.na(CST)), aes(x = CST, y = `Shannon Entropy`, fill
 ```
 
 ## B.CQI-PMTCT cohort:PCA by CST
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #calculate anosim
 perform_anosim(ps_congo_filt_spp_rclr, "CST", "euclidean") #R 0.2058, p=0.001
 #calculate pairwise_anosim (posthoc)
@@ -205,7 +205,7 @@ run_PCA_biplot(ps = ps_congo_filt_spp_rclr,
 
 ## C.CQI-PMTCT cohort:Shannon diversity by ART regimen
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #specify colours
 ART_cols = c("TDF_3TC_EFV" = "#E7AC18", "TDF_3TC_TLD" = "#1853E7", "TDF_3TC" = "#D02AD5")
 
@@ -227,7 +227,7 @@ ggplot(shannon %>% filter(!is.na(ART_regimen)), aes(ART_regimen, `Shannon Entrop
 
 ## D.CQI-PMTCT cohort: PCA by ART
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #subset to samples with ART info available
 ps_ART_only <- subset_samples(ps_congo_filt_spp, !is.na(ART_regimen))
 #trasform
@@ -244,7 +244,7 @@ run_PCA(ps_ART_only_rclr, "ART_regimen", scale = F, title = "", color_palette = 
 
 ## E.CQI-PMTCT cohort:Shannon diversity by viremia
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #specify colours
 VL_col = c("1" = "#712679", "0" = "#2E7926")
 #stats
@@ -262,7 +262,7 @@ ggplot(shannon %>% filter(!is.na(Viral_load_enrol_detected)), aes(Viral_load_enr
 ```
 
 ## F.CQI-PMTCT cohort: PCA by viremia
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 VL_col = c("1" = "#712679", "0" = "#2E7926")
 #subset to samples with viremia info
 ps_VL_only <- subset_samples(ps_congo_filt_spp, !is.na(Viral_load_enrol_detected))
@@ -280,7 +280,7 @@ run_PCA(ps_VL_only_rclr, "Viral_load_enrol_detected", scale = F, title = "", col
 # Figure 3: Ecological statistics in the integrated datasets
 
 ### Calculate alpha diversity
-```{r, data wrangle, echo=FALSE}
+```{r, data wrangle, echo=TRUE}
 # load phyloseq object
 load(file= 'data/ps_filt_spp_zero.RData')
 
@@ -298,7 +298,7 @@ meta_all <- meta_all %>% left_join(CST, by = "sample_id")
 ps_melted <- ps_melted %>% left_join(CST, by = c("Sample" = "sample_id")) 
 ```
 
-```{r,alpha-div, echo=FALSE}
+```{r,alpha-div, echo=TRUE}
 # using funtion from iNEXT library and a wrapper developed by thomazbastiaanssen
 # Compute alpha diversity using a wrapper around the iNEXT library, 
 #which implements automatic rarefaction curves.
@@ -338,7 +338,7 @@ alpha_df <- alpha_nest$alpha_df %>%
 ```
 
 
-```{r stats by HS, echo=FALSE} 
+```{r stats by HS, echo=TRUE} 
 # run stats by health status
 kruskal_alpha <- alpha_df %>%
   pivot_longer(-c(sample_id, study, health_status, CST)) %>%
@@ -369,7 +369,7 @@ stat.test <- kruskal_alpha$pwc %>%
 ```
 
 ## A.Meta-analysis: Shannon diversity by health status
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #load phyloseq
 ps_filt_spp_clr_zero_adj <- readRDS("data/ps_filt_spp_clr_zero_adj.RDS")
 meta_all2 <- sample.data.frame(ps_filt_spp_clr_zero_adj)
@@ -398,7 +398,7 @@ ggplot(alpha_diversity_bac %>% filter(!is.na(health_status)), aes(HS, `Shannon E
 
 ## B.Meta-analysis: PCA by health status
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #specify shapes
 shaps <- c("Kervinen_2022"=21,"Livson_2022"= 22, "Servergnini_2021"=23, "Ho_2021"=24,"PMTCT_CQI"=25,"Movassagh_2021"=6)
 
@@ -417,7 +417,7 @@ run_PCA_shape(ps_filt_spp_clr_zero_adj, "health_status", "study", scale = F, tit
 
 ## C.Metaanaly:Shannon by CST
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 
 alpha_div_all <- alpha_diversity_bac %>% left_join(meta_all, by ="sampleID")
 
@@ -442,7 +442,7 @@ ggplot(alpha_div_all %>% filter(!is.na(CST)), aes(CST, `Shannon Entropy`, fill =
 
 ## D.Meta-analysis: PCA by CST
 
-```{r,  echo=FALSE}
+```{r,  echo=TRUE}
 #stats
 perform_anosim(ps_filt_spp_clr_zero_adj, "CST", "euclidean") #R 0.3991, p=0.01
 #calculate pairwise_anosim (posthoc)
@@ -455,7 +455,7 @@ run_PCA_shape(ps_filt_spp_clr_zero_adj, "CST", "study", scale = F, title = " ", 
 
 # Figure 4: Meta-analysis: Differentially abundant species by health status
 ### perform DAAs
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 
 #### load data ----
 load('data/ps_filt_spp_zero.RData')
@@ -735,7 +735,7 @@ ps_melted_clr %>%
 
 # Figure 5: CQI-PMTCT: Predicted KEGG pathways differentially abundant by CST
 ## perform DAAs
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 all_congo_df <- vroom::vroom('tables/ko_df_congo_unstrat_with_annotation.tsv')
 ko_numeric = all_congo_df %>% dplyr::select(KO, where(is.numeric))
 ko_tax = all_congo_df %>% dplyr::select(where(is.character)) %>% mutate(pathway_3 = paste(pathway_1,pathway_2,pathway_3, sep = "_"))
@@ -920,7 +920,7 @@ all_methods_congo <- read_csv("tables/DAA/all_methods_picrust_congo.csv")
 ```
 
 ## Figure 5
-```{r, echo=FALSE, fig.width=15}
+```{r, echo=TRUE, fig.width=15}
 CST_col = c("I" = "#ffd900b9","II" = "#F5530D", "III" = "#16FBCD", "IV" = "navy" ,"V"  = "#8D324D")
 
 all_methods_congo <- read_csv("all_methods_picrust_congo.csv")
@@ -988,7 +988,7 @@ mean_df %>%
 
 # Figure 6: Meta-analysis: Predicted KEGG pathways differentially abundant by health status
 ## perform DAAs
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 all_meta_analysis_df <- vroom::vroom(file ='tables/ko_df_meta_analysis_unstrat_with_annotation.tsv')
 
 melt_meta_df = all_meta_analysis_df %>%
@@ -1254,7 +1254,7 @@ all_methods_meta <- read_csv("tables/DAA/all_methods_picrust_meta.csv")
 ```
 
 ## Figure 6
-```{r, echo=FALSE, fig.height = 28, fig.width = 20}
+```{r, echo=TRUE, fig.height = 28, fig.width = 20}
 # load files
 ps_meta_picrust = readRDS("data/ps_meta_picrust.RDS")
 # health Status
@@ -1318,7 +1318,7 @@ mean_df %>%
 
 # Figure 7: CQI-PMTCT: Correlation between CVMB and immune mediators
 
-```{r data prep, echo=FALSE}
+```{r data prep, echo=TRUE}
 
 #specify the colums that have immune mediator information
 enrol_columns <-
@@ -1550,7 +1550,7 @@ results_table$Adjusted_PValue <- p.adjust(results_table$PValue, method = "BH")
 
 ## A-B.Correlation of immune factors to shannon diversity
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 # Loop through each row in the results_df_alpha data frame
 for (i in 1:nrow(results_table)) {
   # Extract the cytokine name, rho, and p-value
@@ -1583,7 +1583,7 @@ for (i in 1:nrow(results_table)) {
 
 ## C:Correlation of L.iners with sCD163
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 # Loop through each row in the corr_results_df_top3 data frame
 for (i in 1:nrow(corr_results_df_top3)) {
   # Extract the ASV name, cytokine name, rho, and p-value
@@ -1617,7 +1617,7 @@ for (i in 1:nrow(corr_results_df_top3)) {
 
 ## D:Levels of sTNFRSF1A between CST III and IV
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 
 meta_cyt_log <- meta_cyt_log %>%
   rownames_to_column(var = "sampleID")
@@ -1696,7 +1696,7 @@ for (col in significant_results$Cytokine) {
 # Supplemetary Figures 
 ## Fig S3: Heatmap of correlations between all taxa and immune mediators in the CQI-PMTCT cohort
 
-```{r, echo=FALSE, fig.width=11, fig.height=10}
+```{r, echo=TRUE, fig.width=11, fig.height=10}
 #corr_df <- read.csv("tables/linear_regression_results_log.csv", header = T, sep = ";")
 corr_df <- results_table_asv
 #count numbe of samples in each taxo
@@ -1761,7 +1761,7 @@ figs2<- corr_df %>%
 
 ## Fig S2: Covariates explaining microbial variation in the CVMB of the integrated datasets
 
-```{r, echo=FALSE}
+```{r, echo=TRUE}
 #load phyloseq
 ps_filt_spp_clr_zero_adj <- readRDS("data/ps_filt_spp_clr_zero_adj.RDS")
 meta_all <- sample.data.frame(ps_filt_spp_clr_zero_adj)
@@ -1884,7 +1884,7 @@ ggplot(significantL, aes(x = covariates, y = EffectSize)) +
 
 ```
 ##Suggested by reviewer: All Cytokine and CST plots
-```{r, echo=FALSE, warnings = FALSE, fig.width=20, fig.height=20}
+```{r, echo=TRUE, warnings = FALSE, fig.width=20, fig.height=20}
 
 library(patchwork)
 
@@ -1915,7 +1915,7 @@ wrap_plots(plots, ncol = 6)
 ```
 
 ## Suggested by reviewer: All shannon and cytokine linear plots
-```{r, echo=FALSE, fig.width=20, fig.height=20}
+```{r, echo=TRUE, fig.width=20, fig.height=20}
 
 n_plots <- nrow(corr_results_alpha)
 n_cols <- ceiling(sqrt(n_plots))
@@ -1959,7 +1959,7 @@ abline(model, col = "grey")
 ```
 
 ## Suggested by reviewer: linear plots of all taxon and cytokines
-```{r, echo=FALSE, fig.width=5, fig.height=5}
+```{r, echo=TRUE, fig.width=5, fig.height=5}
 n_plots <- nrow(results_table_asv)
 n_cols <- ceiling(sqrt(n_plots))
 n_rows <- ceiling(n_plots / n_cols)
@@ -2014,3 +2014,79 @@ for (i in 1:n_plots) {
 
 ```
 
+## Covariance and correlation plot of all immune factors
+```{r, echo=TRUE, fig.width=15, fig.height=10}
+set.seed(2025)
+#compute corr and covariance and turn to tables
+cyt_cov_mat <- cov(meta_cyt_log, use = "everything", method = "spearman")
+
+cyt_cor_mat <- cor(meta_cyt_log, use = "complete.obs", method = "spearman")
+
+
+#calculate significcance
+cor_test_result <- corr.test(meta_cyt_log, use = "complete.obs", method = "spearman")
+cor_p_matrix <- cor_test_result$p 
+#convert to sign stars matrix
+sig_stars <- matrix("", nrow = nrow(cor_p_matrix), ncol = ncol(cor_p_matrix))
+sig_stars[cor_p_matrix < 0.001] <- "***"
+sig_stars[cor_p_matrix >= 0.001 & cor_p_matrix < 0.01] <- "**"
+sig_stars[sig_stars == "" & cor_p_matrix < 0.05] <- "*"
+sig_stars[sig_stars == "" & cor_p_matrix >= 0.05] <- ""
+
+
+cov_table <- as.data.frame(cyt_cov_mat) %>% 
+  rownames_to_column("Cytokine") %>% 
+  mutate_if(is.numeric, round, 3)
+
+#write.csv(cov_table, "Covariance_cytokines.csv", quote = F)
+
+cor_table_long <- as.data.frame(cyt_cor_mat) %>%
+  rownames_to_column("Cytokine1") %>%
+  pivot_longer(cols = -Cytokine1, names_to = "Cytokine2", values_to = "Correlation") %>%
+
+  mutate(p_value = map2_dbl(Cytokine1, Cytokine2, 
+                           ~cor_p_matrix[.x, .y])) %>%
+
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ "ns"
+  )) %>%
+  # Remove self-correlations and duplicates
+  filter(Cytokine1 != Cytokine2) %>%
+  mutate(pair = map2_chr(Cytokine1, Cytokine2, ~paste(sort(c(.x, .y)), collapse = "-"))) %>%
+  distinct(pair, .keep_all = TRUE) %>%
+  select(-pair) %>%
+  # Format values
+  mutate(
+    Correlation = round(Correlation, 3),
+    p_value = round(p_value, 4),
+    p_value_formatted = ifelse(p_value < 0.0001, "<0.0001", 
+                              sprintf("%.4f", p_value))
+  ) %>%
+  arrange(desc(abs(Correlation)))
+
+#write.csv(cor_table_long, "Correlations_cytokines.csv", quote = F)
+
+#plot covariance matrix
+pheatmap(cyt_cov_mat,
+         main = "Covariance Matrix of Immune factors",
+         color = colorRampPalette(c("green4", "white", "purple4"))(100),
+         display_numbers = FALSE,
+         fontsize = 10,
+         cluster_rows = TRUE,
+         cluster_cols = TRUE)
+
+
+#plot correlatio matrix with signficance
+corrplot(cyt_cor_mat,
+         method = "circle",
+         type = "upper",
+         tl.col = "black", 
+         tl.srt = 45,
+         main = "Correlation Matrix of Immune factors",
+         mar = c(0, 0, 2, 0))
+
+
+```
